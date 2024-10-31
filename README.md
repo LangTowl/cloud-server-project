@@ -1,12 +1,10 @@
 # CNT3004 – Socket-Based Networked File Sharing Cloud Server
 ## Project Objective
----
 The primary objective of this collaborative project is to design, implement, and evaluate  
 a distributed file sharing system in the cloud employing a server-client architecture. The  
 system should facilitate efficient and secure file transfer between multiple clients  
 connected to a central server.
 ## Project Requirements
----
 **Server-Client Architecture:** Implement a robust server-client architecture using  
 Python where clients initiate connections to a central server for file requests and  
 transfers.
@@ -41,7 +39,6 @@ with minimum specified size ranges:
 development branches and collaboration. All team members will have access to  
 repository and make meaningful updates to the code base reflected by commits.
 ## Project Design
----
 **Server Side Application Design**
 - Create a multithreaded server to handle multiple client connections simultaneously.  
 - Implement data structures (e.g., file system, client connection pool) to   efficiently manage files and client information.  
@@ -63,12 +60,10 @@ repository and make meaningful updates to the code base reflected by commits.
 - Module should start with the server application.  
 - Network statistics including upload/download data rates, file transfer times and a third metric of your choice will be stored (ie dictionary or dataframe) to be reviewed offline. This data will be used for the report.
 ## Project Evaluation
----
 - **Performance Analysis:** Conduct experiments to measure the system's performance under various load conditions. Analyze the collected data to identify bottlenecks and areas for optimization.  
 - **Security Assessment:** Evaluate the system's security measures to ensure that it is protected against unauthorized access and data breaches.  
 - **Operation:** All testing should be performed from the client-side application issuing specific commands to produce the expected file operations.
 ## Project Submission
----
 **Report:** Submit a comprehensive project report in doc or pdf, that includes:
 - Cover page that includes name of project, date, course section and each member’s name  
 - Introduction and project objectives (1 page)  
