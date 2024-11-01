@@ -2,6 +2,25 @@ import socket
 import threading
 import sys
 
+# Desc: Client object
+# Auth: Lang Towl
+# Date: 10/31/24
+class Server:
+    # Desc: Server object initializer
+    # Auth: Lang Towl
+    # Date: 11/1/24
+    def __init__(self, ip = '127.0.0.1', port = 3300):
+        self.ip = ip
+        self.port = port
+        self.server_socket = None
+        self.outgoing_codes = {
+            "good_auth": 1,
+            "bad_auth": 2
+        }
+        self.incoming_codes = {
+            "authenticate": 1
+        }
+
 # Desc: Helper function to handle printing without disrupting the input prompt
 # Auth: Lang Towl
 # Date: 10/31/24
@@ -13,6 +32,16 @@ def print_with_prompt(message):
     # Redisplay the prompt
     sys.stdout.write("Server: ")                       
     sys.stdout.flush()
+
+# Desc: Generate a new thread for each connected client
+# Auth: Lang Towl
+# Date: 10/31/24
+def connect_new_client(connection, address):
+    print(f'Connected to {address}')
+
+    # Create threads for sending and receiving messages
+    threading.Thread(target=server_receive, args=(connection,)).start()
+    threading.Thread(target=server_send, args=(connection,)).start()
 
 # Desc: Handle stream inbound messages to server
 # Auth: Lang Towl
@@ -56,13 +85,13 @@ def init_server(ip, port):
     server_socket.bind((ip, port))
 
     # Begin listening for incomming connections
-    server_socket.listen(1)
+    server_socket.listen()
     print("Server is listening...\n")
 
-    # Accept inbound communication
-    connection, address = server_socket.accept()
-    print(f'Connected to {address}')
+    # Continually look for new connections
+    while True:
+        # Accept inbound communication
+        connection, address = server_socket.accept()
 
-    # Create threads for sending and receiving messages
-    threading.Thread(target=server_receive, args=(connection,)).start()
-    threading.Thread(target=server_send, args=(connection,)).start()
+        # Create threads for sending and receiving messages
+        threading.Thread(target=connect_new_client, args=(connection, address)).start()
