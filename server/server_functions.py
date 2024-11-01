@@ -1,3 +1,5 @@
+# server_functions.py
+
 import socket
 import threading
 import sys
@@ -13,85 +15,63 @@ class Server:
         self.ip = ip
         self.port = port
         self.server_socket = None
+        self.active_connections = 0
+        self.authenticated_users = {
+            "Lang": "123"
+        }
         self.outgoing_codes = {
-            "good_auth": 1,
-            "bad_auth": 2
+            "good_auth": 100,
+            "bad_auth": 101
         }
         self.incoming_codes = {
-            "authenticate": 1
+            "auth": 100,
+            "auth_new": 101
         }
-
-# Desc: Helper function to handle printing without disrupting the input prompt
-# Auth: Lang Towl
-# Date: 10/31/24
-def print_with_prompt(message):
-    # Clear the current line (80 characters)
-    sys.stdout.write('\r' + ' ' * 80 + '\r')
-    print(message) 
     
-    # Redisplay the prompt
-    sys.stdout.write("Server: ")                       
-    sys.stdout.flush()
+    # Desc: Initiate client socket
+    # Auth: Lang Towl
+    # Date: 11/1/24
+    def init_server(self):
+        # Create a socket object, bidning it to the port and IP
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server_socket.bind((self.ip, self.port))
 
-# Desc: Generate a new thread for each connected client
-# Auth: Lang Towl
-# Date: 10/31/24
-def connect_new_client(connection, address):
-    print(f'Connected to {address}')
+        # Begin listening for incomming connections
+        self.server_socket.listen()
+        print("Server is listening...")
 
-    # Create threads for sending and receiving messages
-    threading.Thread(target=server_receive, args=(connection,)).start()
-    threading.Thread(target=server_send, args=(connection,)).start()
+    
+    # Desc: handle new client connections
+    # Auth: Lang Towl
+    # Date: 10/31/24
+    def new_client_connection(self, client_socket):
+        # Increase the number of active connections
+        self.active_connections += 1
+        print(f"Total active connections: {self.active_connections}\n")
 
-# Desc: Handle stream inbound messages to server
-# Auth: Lang Towl
-# Date: 10/31/24
-def server_receive(server_socket):
-    # Continually checks for inbound messages to client
-    while True:
-        try:
-             # Decode inbound response from bytes into string
-            response = server_socket.recv(1024).decode()
-            if response:
-                print_with_prompt(f"Client: {response}")
-            else:
+        while True:
+            # Receive the client message
+            message = client_socket.recv(1024).decode()
+            message_components = message.split()
+                
+            # Break in case of corrupted message
+            if not message:
                 break
-        except:
-            break
 
-# Desc: Send outputbound messages from server
-# Auth: Lang Towl
-# Date: 10/31/24
-def server_send(server_socket):
-    while True:
-        # Get server input, message to be sent
-        message = input("Server: ")
+            # Pass incoming message to message parser
+            self.parse_message_from_client(message = message_components)
 
-        # Check for escape case
-        if message.lower() == 'exit':
-            break
-        
-        # Sends byte-encoded message
-        server_socket.send(message.encode())
+    # Desc: Function parses input from client thread
+    # Auth: Lang Towl
+    # Date: 10/31/24
+    def parse_message_from_client(self, message):
+        # Switch statement to determine subroutine to run
+        if message[0] == '100':
+            print(f"Attempting to authenticate {message[1]}...\n")
 
-    # Closses socket in event of escape case
-    server_socket.close()
-    print("Connection closed by server.\n")
+            if message[1] in self.authenticated_users and self.authenticated_users[message[1]] == message[2] :
+                print(f"{message[1]} authorized.\n")
+            else:
+                print(f"{message[1]} is not authorized.\n")
 
-def init_server(ip, port):
-    # Create a socket object, bidning it to the port and IP
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server_socket.bind((ip, port))
-
-    # Begin listening for incomming connections
-    server_socket.listen()
-    print("Server is listening...\n")
-
-    # Continually look for new connections
-    while True:
-        # Accept inbound communication
-        connection, address = server_socket.accept()
-
-        # Create threads for sending and receiving messages
-        threading.Thread(target=connect_new_client, args=(connection, address)).start()
