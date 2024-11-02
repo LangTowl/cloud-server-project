@@ -33,7 +33,7 @@ if __name__ == "__main__":
         if client.authenticate_client() == True:
             break
 
-        print("Account couldn't be authenticated. Do you want to try again, or make a new acount? (try/new)")
+        print("Do you want to try again, or make a new acount? (try/new)")
         failed = input("> ")
 
         if failed.lower() == "new":

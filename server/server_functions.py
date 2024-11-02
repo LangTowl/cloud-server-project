@@ -46,32 +46,51 @@ class Server:
     # Auth: Lang Towl
     # Date: 10/31/24
     def new_client_connection(self, client_socket):
-        # Increase the number of active connections
-        self.active_connections += 1
-        print(f"Total active connections: {self.active_connections}\n")
-
         while True:
-            # Receive the client message
-            message = client_socket.recv(1024).decode()
-            message_components = message.split()
+            try:
+                # Receive the client message
+                message = client_socket.recv(1024).decode()
                 
-            # Break in case of corrupted message
-            if not message:
-                break
+                # Break in case of corrupted message
+                if not message:
+                    break
 
-            # Pass incoming message to message parser
-            self.parse_message_from_client(message = message_components)
+                # Pass incoming message to message parser
+                message_components = message.split()
+                keep_connection =  self.parse_message_from_client(message = message_components, client_socket = client_socket)
+
+                # Terminate connection if bad auth
+                if keep_connection:
+                    # Increase the number of active connections
+                    self.active_connections += 1
+                    print(f"Total active connections: {self.active_connections}\n")
+                else: 
+                    self.active_connections -= 1
+                    print("Connection closed due to failed authentication.\n")
+                    break
+            except:
+                print("Error: Issue encountered when terminating client connection.")
+                break
 
     # Desc: Function parses input from client thread
     # Auth: Lang Towl
     # Date: 10/31/24
-    def parse_message_from_client(self, message):
+    def parse_message_from_client(self, message, client_socket):
         # Switch statement to determine subroutine to run
-        if message[0] == '100':
+        if message[0] == str(self.incoming_codes['auth']):
             print(f"Attempting to authenticate {message[1]}...\n")
 
             if message[1] in self.authenticated_users and self.authenticated_users[message[1]] == message[2] :
                 print(f"{message[1]} authorized.\n")
+
+                # Send good auth code back to client
+                client_socket.send(str(self.outgoing_codes['good_auth']).encode())
+                return True
             else:
                 print(f"{message[1]} is not authorized.\n")
+
+                # Send bad auth code back to client and terminate connection
+                client_socket.send(str(self.outgoing_codes['bad_auth']).encode())
+                client_socket.close()
+                return False
 

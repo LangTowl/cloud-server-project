@@ -47,6 +47,16 @@ class Client:
         user_to_authenticate = f"{self.outgoing_codes['auth']} {self.username} {self.password}"
 
         self.client_socket.send(user_to_authenticate.encode())
-        self.client_socket.close()
+
+        # Wait for authentication response from server
+        response = self.client_socket.recv(1024).decode()
+
+        # Process server response
+        if response == str(self.incoming_codes['good_auth']):
+            self.authenticated = True
+            print("\nAuthentication successful. You are now connected to the server.\n")
+        elif response == str(self.incoming_codes['bad_auth']):
+            print("\nAuthentication failed. Connection will be closed.\n")
+            self.client_socket.close()
 
         return self.authenticated
