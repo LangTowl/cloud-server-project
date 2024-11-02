@@ -25,7 +25,8 @@ class Client:
         }
         self.incoming_codes = {
             "good_auth": 100,
-            "bad_auth": 101
+            "bad_auth": 101,
+            "dup_user": 102
         }
 
     # Desc: Initiate client socket
@@ -57,6 +58,9 @@ class Client:
             print("\nAuthentication successful. You are now connected to the server.\n")
         elif response == str(self.incoming_codes['bad_auth']):
             print("\nAuthentication failed. Connection will be closed.\n")
+            self.client_socket.close()
+        elif response == str(self.incoming_codes['dup_user']):
+            print("\nUser with same credentials already connected to network. Connection will be closed.\n")
             self.client_socket.close()
 
         return self.authenticated

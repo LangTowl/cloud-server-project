@@ -16,12 +16,14 @@ class Server:
         self.port = port
         self.server_socket = None
         self.active_connections = 0
+        self.connected_users = []
         self.authenticated_users = {
-            "Lang": "123"
+            "Lang": "123" # Just here for testing
         }
         self.outgoing_codes = {
             "good_auth": 100,
-            "bad_auth": 101
+            "bad_auth": 101,
+            "dup_user": 102
         }
         self.incoming_codes = {
             "auth": 100,
@@ -71,6 +73,15 @@ class Server:
             except:
                 print("Error: Issue encountered when terminating client connection.")
                 break
+    
+    # Desc: Function checks list of current connected users to prevent duplicate connections
+    # Auth: Lang Towl
+    # Date: 11/2/24
+    def user_already_online(self, user) -> bool:
+        if user in self.connected_users:
+            return True
+        else:
+            return False
 
     # Desc: Function parses input from client thread
     # Auth: Lang Towl
@@ -80,12 +91,20 @@ class Server:
         if message[0] == str(self.incoming_codes['auth']):
             print(f"Attempting to authenticate {message[1]}...\n")
 
-            if message[1] in self.authenticated_users and self.authenticated_users[message[1]] == message[2] :
-                print(f"{message[1]} authorized.\n")
+            if message[1] in self.authenticated_users and self.authenticated_users[message[1]] == message[2]:
+                if self.user_already_online(message[1]) == False:
+                    print(f"{message[1]} authorized.\n")
 
-                # Send good auth code back to client
-                client_socket.send(str(self.outgoing_codes['good_auth']).encode())
-                return True
+                    # Send good auth code back to client
+                    client_socket.send(str(self.outgoing_codes['good_auth']).encode())
+                    self.connected_users.append(message[1])
+                    return True
+                else:
+                    print(f"{message[1]} already connected to network.\n")
+                    # Send bad auth code back to client and terminate connection
+                    client_socket.send(str(self.outgoing_codes['dup_user']).encode())
+                    client_socket.close()
+                    return False
             else:
                 print(f"{message[1]} is not authorized.\n")
 
