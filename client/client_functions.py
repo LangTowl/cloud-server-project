@@ -26,7 +26,8 @@ class Client:
         self.incoming_codes = {
             "good_auth": 100,
             "bad_auth": 101,
-            "dup_user": 102
+            "dup_user": 102,
+            "user_added": 103
         }
 
     # Desc: Initiate client socket
@@ -60,7 +61,23 @@ class Client:
             print("\nAuthentication failed. Connection will be closed.\n")
             self.client_socket.close()
         elif response == str(self.incoming_codes['dup_user']):
-            print("\nUser with same credentials already connected to network. Connection will be closed.\n")
+            print("User with same credentials is already connected to network. Connection will be closed.\n")
             self.client_socket.close()
 
         return self.authenticated
+
+    # Desc: Contacts server to authenticate client
+    # Auth: Lang Towl
+    # Date: 11/1/24
+    def athorize_new_client(self):
+        user_to_authorize = f"{self.outgoing_codes['auth_new']} {self.username} {self.password}"
+
+        self.client_socket.send(user_to_authorize.encode())
+
+        response = self.client_socket.recv(1024).decode()
+
+        # Process server response
+        if response == str(self.incoming_codes['user_added']):
+            print("\nRequest received by server. Waiting for server to vailidate new client...")
+        elif response == str(self.incoming_codes['dup_user']):
+            print("\nA user with these credentials already exists.\n")
