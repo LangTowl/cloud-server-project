@@ -11,7 +11,7 @@ class Client:
     # Desc: Client object initializer
     # Auth: Lang Towl
     # Date: 11/1/24
-    def __init__(self, ip = '127.0.0.1', port = 3300, username = None, password = None):
+    def __init__(self, ip = '34.171.23.154', port = 8080, username = None, password = None):
         self.ip = ip
         self.port = port
         self.username = username

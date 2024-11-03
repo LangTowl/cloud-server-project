@@ -11,7 +11,7 @@ class Server:
     # Desc: Server object initializer
     # Auth: Lang Towl
     # Date: 11/1/24
-    def __init__(self, ip = '127.0.0.1', port = 3300):
+    def __init__(self, ip = '0.0.0.0', port = 8080):
         self.ip = ip
         self.port = port
         self.server_socket = None
