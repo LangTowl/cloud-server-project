@@ -11,7 +11,7 @@ class Client:
     # Desc: Client object initializer
     # Auth: Lang Towl
     # Date: 11/1/24
-    def __init__(self, ip = '34.171.23.154', port = 8080, username = None, password = None):
+    def __init__(self, ip = '127.0.0.1', port = 8080, username = None, password = None):
         self.ip = ip
         self.port = port
         self.username = username
@@ -21,13 +21,16 @@ class Client:
         self.client_socket = None
         self.outgoing_codes = {
             "auth": 100,
-            "auth_new": 101
+            "auth_new": 101,
+            "exit": 102
         }
         self.incoming_codes = {
             "good_auth": 100,
             "bad_auth": 101,
             "dup_user": 102,
-            "user_added": 103
+            "user_added": 103,
+            "disconnected": 104,
+            "disconnect_fail": 105
         }
 
     # Desc: Initiate client socket
@@ -81,3 +84,35 @@ class Client:
             print("\nRequest received by server. Waiting for server to vailidate new client...")
         elif response == str(self.incoming_codes['dup_user']):
             print("\nA user with these credentials already exists.\n")
+
+    # Desc: Check validity of instruction
+    # Auth: Lang Towl
+    # Date: 11/4/24
+    def validate_command(self, command):
+        commands = command.split()
+
+        if commands[0] in self.outgoing_codes:
+            return True
+        else:
+            return False
+
+    # Desc: Outgoing command handler
+    # Auth: Lang Towl
+    # Date: 11/4/24
+    def direct_outgoing_commands(self, command):
+        if command == "exit":
+            self.exit_subroutine()
+    
+    # Desc: Exit subroutine
+    # Auth: Lang Towl
+    # Date: 11/4/24
+    def exit_subroutine(self):
+        message = f"{self.outgoing_codes['exit']} {self.username}"
+
+        self.client_socket.send(message.encode())
+        response = self.client_socket.recv(1024).decode()
+
+        if response == str(self.incoming_codes['disconnected']):
+            self.authenticated = False
+        else:
+            self.incoming_codes['disconnect_fail']

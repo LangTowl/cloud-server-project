@@ -78,7 +78,22 @@ if __name__ == "__main__":
     
     # Code to run once user is authenticated
     while True:
+        if client.authenticated == False:
+            break
+
         command = input("> ")
 
-        if command.lower() == "exit":
-            break
+        valid_command = client.validate_command(command)
+
+        if valid_command == True:
+            client.direct_outgoing_commands(command)
+
+        else:
+            try_again = input("Do you want to try again? (y/n): ")
+
+            if try_again.lower() == 'y':
+                continue
+            elif try_again.lower() == 'n':
+                break
+            else:
+                print("Unrecognized command entered.\n")
