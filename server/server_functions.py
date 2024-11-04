@@ -11,7 +11,7 @@ class Server:
     # Desc: Server object initializer
     # Auth: Lang Towl
     # Date: 11/1/24
-    def __init__(self, ip = '0.0.0.0', port = 8080):
+    def __init__(self, ip = '127.0.0.1', port = 8080):
         self.ip = ip
         self.port = port
         self.server_socket = None
@@ -22,11 +22,14 @@ class Server:
             "good_auth": 100,
             "bad_auth": 101,
             "dup_user": 102,
-            "user_added": 103
+            "user_added": 103,
+            "disconnected": 104,
+            "disconnect_fail": 105
         }
         self.incoming_codes = {
             "auth": 100,
-            "auth_new": 101
+            "auth_new": 101,
+            "exit": 102
         }
     
     # Desc: Initiate client socket
@@ -46,7 +49,7 @@ class Server:
     # Desc: handle new client connections
     # Auth: Lang Towl
     # Date: 10/31/24
-    def new_client_connection(self, client_socket):
+    def incoming_client_communications(self, client_socket):
         while True:
             try:
                 # Receive the client message
@@ -58,16 +61,22 @@ class Server:
 
                 # Pass incoming message to message parser
                 message_components = message.split()
-                keep_connection =  self.parse_message_from_client(message = message_components, client_socket = client_socket)
+                result =  self.parse_message_from_client(message = message_components, client_socket = client_socket)
 
-                # Terminate connection if bad auth
-                if keep_connection:
+                # Process internal code
+                if result == self.outgoing_codes['good_auth']:
                     print(f"Total active connections: {self.active_connections}\n")
-                else: 
-                    print("Connection closed due to failed authentication.\n")
+                elif result == self.outgoing_codes['bad_auth']: 
+                    print("Connection closed.\n")
+                    break
+                elif result == self.outgoing_codes['disconnected']: 
+                    print("\nUser disconnected.\n")
+                    print(f"Active users: {self.active_connections}")
+                    break
+                else:
                     break
             except:
-                print("Error: Issue encountered when terminating client connection.")
+                print("Unexpected result from client query.")
                 break
     
     # Desc: Function checks list of current connected users to prevent duplicate connections
@@ -99,21 +108,21 @@ class Server:
                     # Send good auth code back to client
                     client_socket.send(str(self.outgoing_codes['good_auth']).encode())
                     self.connected_users.append(message[1])
-                    return True
+                    return self.outgoing_codes['good_auth']
                 else:
                     print(f"{message[1]} already connected to network.\n")
                     
                     # Send bad auth code back to client and terminate connection
                     client_socket.send(str(self.outgoing_codes['dup_user']).encode())
                     client_socket.close()
-                    return False
+                    return self.outgoing_codes['bad_auth']
             else:
                 print(f"{message[1]} is not authorized.\n")
 
                 # Send bad auth code back to client and terminate connection
                 client_socket.send(str(self.outgoing_codes['bad_auth']).encode())
                 client_socket.close()
-                return False
+                return self.outgoing_codes['bad_auth']
         
         # Client wants to register themselves with server
         elif message[0] == str(self.incoming_codes['auth_new']):
@@ -124,11 +133,29 @@ class Server:
                 # Tell client they provided invalid credentials
                 client_socket.send(str(self.outgoing_codes['dup_user']).encode())
                 client_socket.close()
-                return False
+                return self.outgoing_codes['bad_auth']
             else:
                 print(f"{message[1]} is now an authorized user.\n")
                 
                 # Tell client they provided valid credentials and add them to the list of authorized users
                 self.authenticated_users[message[1]] = message[2]
                 client_socket.send(str(self.outgoing_codes['user_added']).encode())
-                return True
+                return self.outgoing_codes['good_auth']
+            
+        # Client wants to gracefully disconect from server
+        elif message[0] == str(self.incoming_codes['exit']):
+            print(f"Attempting to disconnect {message[1]}.")
+
+            if message[1] in self.connected_users:
+                self.connected_users.remove(message[1])
+                self.active_connections -= 1
+
+                client_socket.send(str(self.outgoing_codes['disconnected']).encode())
+                client_socket.close()
+
+                return self.outgoing_codes['disconnected']
+            else:
+                print(f"\nRequested to remove {message[1]}, but no such user is connected.\n")
+
+                client_socket.send(self.outgoing_codes['disconnect_fail'].encode())
+                return self.outgoing_codes['disconnect_fail']
