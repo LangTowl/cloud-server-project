@@ -1,8 +1,7 @@
 # client_functions.py
 
 import socket
-import threading
-import sys
+import os
 
 # Desc: Client object
 # Auth: Lang Towl
@@ -22,7 +21,9 @@ class Client:
         self.outgoing_codes = {
             "auth": 100,
             "auth_new": 101,
-            "exit": 102
+            "exit": 102,
+            "ls": 201,
+            "upload": 202
         }
         self.incoming_codes = {
             "good_auth": 100,
@@ -30,7 +31,10 @@ class Client:
             "dup_user": 102,
             "user_added": 103,
             "disconnected": 104,
-            "disconnect_fail": 105
+            "disconnect_fail": 105,
+            "good_upload": 203,
+            "bad_upload": 204,
+            "file_exists": 205
         }
 
     # Desc: Initiate client socket
@@ -100,8 +104,14 @@ class Client:
     # Auth: Lang Towl
     # Date: 11/4/24
     def direct_outgoing_commands(self, command):
-        if command == "exit":
+        command_components = command.split()
+
+        if command_components[0] == "exit":
             self.exit_subroutine()
+        elif command_components[0] == "ls":
+            self.ls_subroutine()
+        elif command_components[0] == "upload":
+            self.upload_file(command_components[1])
     
     # Desc: Exit subroutine
     # Auth: Lang Towl
@@ -116,3 +126,47 @@ class Client:
             self.authenticated = False
         else:
             self.incoming_codes['disconnect_fail']
+    
+    # Desc: Show files in CWD subroutine
+    # Auth: Lang Towl
+    # Date: 11/4/24
+    def ls_subroutine(self):
+        # Fetch current working directory
+        cwd = os.getcwd()
+
+        # Aggregate files in cwd
+        local_files = os.listdir(cwd)
+        file_names = ""
+
+        for entry in local_files:
+            file_names += f"{entry}   "
+        
+        print(f"\n{file_names}\n")
+
+    # Desc: Upload file subroutine
+    # Auth: Lang Towl
+    # Date: 11/4/24
+    def upload_file(self, filename):
+        # Check to see if specific file is in cwd
+        if not os.path.exists(filename):
+            print("\nFile not found in the current working directory.\n")
+            return
+        else:
+            print(f"\nPreparing to upload '{filename}...\n")
+
+            message = f"{self.outgoing_codes['upload']} {filename}"
+            self.client_socket.send(message.encode())
+            
+            with open(filename, "rb") as file:
+                # Break file into binary chunks
+                chunk = file.read(1024)
+
+                while chunk:
+                    self.client_socket.send(chunk)
+                    chunk = file.read(1024)
+
+            # Send EOF notification to server
+            self.client_socket.send(b"<EOF>")
+
+            response = self.client_socket.recv(1024).decode()
+            print(str(response))

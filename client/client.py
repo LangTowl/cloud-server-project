@@ -15,7 +15,7 @@ if __name__ == "__main__":
         elif account_status.lower() == "n":
             break
         else:
-            print("Invalid input. Do you have an account? (y/n)")
+            print("\nInvalid input. Do you have an account? (y/n)\n")
 
     # Create unauthenticated client
     client = cf.Client()
