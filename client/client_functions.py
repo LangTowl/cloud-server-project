@@ -23,7 +23,9 @@ class Client:
             "auth_new": 101,
             "exit": 102,
             "ls": 201,
-            "upload": 202
+            "upload": 202,
+            "override": 203,
+            "no_override": 204
         }
         self.incoming_codes = {
             "good_auth": 100,
@@ -156,6 +158,19 @@ class Client:
 
             message = f"{self.outgoing_codes['upload']} {filename}"
             self.client_socket.send(message.encode())
+
+            # Wait for status update of file upload
+            response = self.client_socket.recv(1024).decode()
+
+            # Prompt user to determine if they want to overive file
+            if response == str(self.incoming_codes['file_exists']):
+                override = input("File exists on server, do you want to override this file? (y/n): ")
+
+                # Escape function if they dont want to override
+                if override.lower() == "n":
+                    return
+                else:
+                    self.client_socket.send(str(self.outgoing_codes["override"]).encode())
             
             with open(filename, "rb") as file:
                 # Break file into binary chunks
@@ -168,5 +183,6 @@ class Client:
             # Send EOF notification to server
             self.client_socket.send(b"<EOF>")
 
+            # Print error code
             response = self.client_socket.recv(1024).decode()
-            print(str(response))
+            print(response)

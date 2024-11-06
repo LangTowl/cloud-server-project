@@ -3,6 +3,7 @@
 import socket
 import os
 
+
 # Desc: Client object
 # Auth: Lang Towl
 # Date: 10/31/24
@@ -10,7 +11,7 @@ class Server:
     # Desc: Server object initializer
     # Auth: Lang Towl
     # Date: 11/1/24
-    def __init__(self, ip = '127.0.0.1', port = 8080):
+    def __init__(self, ip = '0.0.0.0', port = 8080):
         self.ip = ip
         self.port = port
         self.server_socket = None
@@ -32,7 +33,9 @@ class Server:
             "auth": 100,
             "auth_new": 101,
             "exit": 102,
-            "upload": 202
+            "upload": 202,
+            "override": 203,
+            "no_override": 204
         }
 
 
@@ -178,7 +181,7 @@ class Server:
 
             print(f'Receiving file `{file_name}` from client...\n')
 
-            upload_progress = self.receive_file(file_name, client_socket)
+            self.receive_file(file_name, client_socket)
 
             client_socket.send(str(self.outgoing_codes['good_upload']).encode())
             return self.outgoing_codes['good_upload']
@@ -192,10 +195,26 @@ class Server:
         try:
             # Create an open a file in write binary mode
             file_path = os.path.join(os.getcwd(), file_name)
-            
-            with open(file_path, "wb") as file:
 
-                print("Receiving file...\n")
+            if os.path.exists(file_path):
+                print("File already exists on server. Waiting for permission to override.\n")
+
+                # Alert client to redundancy, wait for instructions
+                client_socket.send(str(self.outgoing_codes['file_exists']).encode())
+                response = client_socket.recv(1024).decode()
+
+                if response == str(self.incoming_codes["override"]):
+                    print("Permission to override granted.\n")
+                else:
+                    print("Permission to override denied.\n")
+                    return
+            else:
+                client_socket.send(str(self.outgoing_codes['good_upload']).encode())    
+
+
+            # Loop to copy contents of incoming chunks to file
+            with open(file_path, "wb") as file:
+                print("Parsing file...\n")
                 
                 while True:
                     # Recieve data from client in chunks
@@ -203,7 +222,7 @@ class Server:
 
                     if b"<EOF>" in data:
                         file.write(data.replace(b"<EOF>", b""))
-                        print(f"Finished recieving file '{file_name}.\n")
+                        print(f"Finished recieving file '{file_name}'.\n")
                         break
                     
                     # Write data to open file
