@@ -15,7 +15,7 @@ if __name__ == "__main__":
         elif account_status.lower() == "n":
             break
         else:
-            print("Invalid input. Do you have an account? (y/n)")
+            print("\nInvalid input. Do you have an account? (y/n)\n")
 
     # Create unauthenticated client
     client = cf.Client()
@@ -83,11 +83,14 @@ if __name__ == "__main__":
 
         command = input("> ")
 
+        # Check to see if user input is a valid command
         valid_command = client.validate_command(command)
 
+        # If valid, pass instruction to command handler
         if valid_command == True:
             client.direct_outgoing_commands(command)
 
+        # Else, prompt user to retry 
         else:
             try_again = input("Do you want to try again? (y/n): ")
 
