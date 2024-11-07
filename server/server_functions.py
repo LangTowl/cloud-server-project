@@ -196,6 +196,7 @@ class Server:
             # Create an open a file in write binary mode
             file_path = os.path.join(os.getcwd(), file_name)
 
+            #  Code to run if file alerady exists on server
             if os.path.exists(file_path):
                 print("File already exists on server. Waiting for permission to override.\n")
 
@@ -212,7 +213,7 @@ class Server:
                 client_socket.send(str(self.outgoing_codes['good_upload']).encode())    
 
 
-            # Loop to copy contents of incoming chunks to file
+            # Loop to copy contents of incoming chunks to file, open file in write binary mode
             with open(file_path, "wb") as file:
                 print("Parsing file...\n")
                 
@@ -220,6 +221,7 @@ class Server:
                     # Recieve data from client in chunks
                     data = client_socket.recv(1024)
 
+                    # Escape sequence to run once end of file is reached
                     if b"<EOF>" in data:
                         file.write(data.replace(b"<EOF>", b""))
                         print(f"Finished recieving file '{file_name}'.\n")

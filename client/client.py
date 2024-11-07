@@ -83,11 +83,14 @@ if __name__ == "__main__":
 
         command = input("> ")
 
+        # Check to see if user input is a valid command
         valid_command = client.validate_command(command)
 
+        # If valid, pass instruction to command handler
         if valid_command == True:
             client.direct_outgoing_commands(command)
 
+        # Else, prompt user to retry 
         else:
             try_again = input("Do you want to try again? (y/n): ")
 

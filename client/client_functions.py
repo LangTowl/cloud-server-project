@@ -156,6 +156,7 @@ class Client:
         else:
             print(f"\nPreparing to upload '{filename}...\n")
 
+            # Alert server to incoming file
             message = f"{self.outgoing_codes['upload']} {filename}"
             self.client_socket.send(message.encode())
 
@@ -172,6 +173,7 @@ class Client:
                 else:
                     self.client_socket.send(str(self.outgoing_codes["override"]).encode())
             
+            # Open local file in read binary mode
             with open(filename, "rb") as file:
                 # Break file into binary chunks
                 chunk = file.read(1024)
