@@ -25,7 +25,8 @@ class Client:
             "ls": 201,
             "upload": 202,
             "override": 203,
-            "no_override": 204
+            "no_override": 204,
+            "sls": 301,
         }
         self.incoming_codes = {
             "good_auth": 100,
@@ -38,6 +39,8 @@ class Client:
             "bad_upload": 204,
             "file_exists": 205
         }
+
+
 
     # Desc: Initiate client socket
     # Auth: Lang Towl
@@ -114,6 +117,8 @@ class Client:
             self.ls_subroutine()
         elif command_components[0] == "upload":
             self.upload_file(command_components[1])
+        elif command_components[0] == "sls":
+            self.sls_subroutine()
     
     # Desc: Exit subroutine
     # Auth: Lang Towl
@@ -140,8 +145,13 @@ class Client:
         local_files = os.listdir(cwd)
         file_names = ""
 
+        # Define the allowed extensions
+        allowed_extensions = ('.txt', '.mp3', '.wav', '.mp4', '.mkv', '.avi')
+
         for entry in local_files:
-            file_names += f"{entry}   "
+            # Only add files with the allowed extensions
+            if entry.endswith(allowed_extensions):
+                file_names += f"{entry}   "
         
         print(f"\n{file_names}\n")
 
@@ -188,3 +198,15 @@ class Client:
             # Print error code
             response = self.client_socket.recv(1024).decode()
             print(response)
+
+    # Desc: Request list of files from server
+    # Auth: Lang Towl
+    # Date: 11/4/24
+    def sls_subroutine(self):
+        # Request files in servers cwd
+        message = f"{self.outgoing_codes['sls']}"
+        self.client_socket.send(message.encode())
+
+        # Wait for server to fulfil request
+        response = self.client_socket.recv(1024).decode()
+        print(f"\n{response}\n")
