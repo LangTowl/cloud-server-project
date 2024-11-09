@@ -37,7 +37,8 @@ class Server:
             "upload": 202,
             "override": 203,
             "no_override": 204,
-            "sls": 301
+            "sls": 301,
+            "download": 302
         }
 
 
@@ -217,6 +218,23 @@ class Server:
             else:
                 client_socket.send(file_names.encode())
 
+            return self.outgoing_codes['ok']
+        
+        # Client wants to download a file off the server
+        elif message[0] == str(self.incoming_codes['download']):
+            print(f"Client has requested to download '{message[1]}'.\nSending...\n")
+
+            # Open local file in read binary mode
+            with open(message[1], "rb") as file:
+                # Break file into binary chunks
+                chunk = file.read(1024)
+
+                while chunk:
+                    client_socket.send(chunk)
+                    chunk = file.read(1024)
+
+            # Send EOF notification to server
+            client_socket.send(b"<EOF>")
             return self.outgoing_codes['ok']
 
     # Desc: Receives a file from the client and writes it to the server's directory

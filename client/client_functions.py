@@ -27,6 +27,7 @@ class Client:
             "override": 203,
             "no_override": 204,
             "sls": 301,
+            "download": 302
         }
         self.incoming_codes = {
             "good_auth": 100,
@@ -116,9 +117,11 @@ class Client:
         elif command_components[0] == "ls":
             self.ls_subroutine()
         elif command_components[0] == "upload":
-            self.upload_file(command_components[1])
+            self.upload_file_subroutine(command_components[1])
         elif command_components[0] == "sls":
             self.sls_subroutine()
+        elif command_components[0] == "download":
+            self.dowload_file_subroutine(command_components[1])
     
     # Desc: Exit subroutine
     # Auth: Lang Towl
@@ -158,7 +161,7 @@ class Client:
     # Desc: Upload file subroutine
     # Auth: Lang Towl
     # Date: 11/4/24
-    def upload_file(self, filename):
+    def upload_file_subroutine(self, filename):
         # Check to see if specific file is in cwd
         if not os.path.exists(filename):
             print("\nFile not found in the current working directory.\n")
@@ -210,3 +213,47 @@ class Client:
         # Wait for server to fulfil request
         response = self.client_socket.recv(1024).decode()
         print(f"\n{response}\n")
+
+    # Desc: Request list of files from server
+    # Auth: Lang Towl
+    # Date: 11/4/24
+    def dowload_file_subroutine(self, file_name):
+        # Check to see if file exists on server
+        message = f"{self.outgoing_codes['sls']}"
+        self.client_socket.send(message.encode())
+
+        # Wait for server to fulfil request
+        response = self.client_socket.recv(1024).decode()
+
+        # If file exists on server
+        if file_name in response:
+            try:
+                # Make new file in clients CWD
+                file_path = os.path.join(os.getcwd(), file_name)
+
+                # Request download initiation
+                request_dowload = f"{self.outgoing_codes['download']} {file_name}"
+                self.client_socket.send(request_dowload.encode())
+
+                # Loop to copy contents of incoming chunks to file, open file in write binary mode
+                with open(file_path, "wb") as file:
+                    print("\nDownloading file...\n")
+                    
+                    while True:
+                        # Recieve data from client in chunks
+                        data = self.client_socket.recv(1024)
+
+                        # Escape sequence to run once end of file is reached
+                        if b"<EOF>" in data:
+                            file.write(data.replace(b"<EOF>", b""))
+                            print(f"Finished recieving file '{file_name}'.\n")
+                            break
+                        
+                        # Write data to open file
+                        file.write(data)
+            finally:
+                file.close()
+
+        # If file doesn't exists on server
+        else:
+            print("\nFile does not exist on server.\n")
