@@ -27,7 +27,8 @@ class Server:
             "disconnect_fail": 105,
             "good_upload": 203,
             "bad_upload": 204,
-            "file_exists": 205
+            "file_exists": 205,
+            "ok": 200
         }
         self.incoming_codes = {
             "auth": 100,
@@ -35,7 +36,9 @@ class Server:
             "exit": 102,
             "upload": 202,
             "override": 203,
-            "no_override": 204
+            "no_override": 204,
+            "sls": 301,
+            "download": 302
         }
 
 
@@ -84,6 +87,8 @@ class Server:
                     break
                 elif result == self.outgoing_codes['good_upload']:
                     print("File successfully uploaded.\n")
+                elif result == self.outgoing_codes['ok']:
+                    print("Client requested fulfilled.\n")
                 else:
                     break
             except Exception as error:
@@ -186,7 +191,51 @@ class Server:
             client_socket.send(str(self.outgoing_codes['good_upload']).encode())
             return self.outgoing_codes['good_upload']
     
+        # Client wants to know files in servers cws
+        elif message[0] == str(self.incoming_codes['sls']):
+            print("Client requested files listed on server.\n")
+    
+            # Fetch current working directory
+            cwd = os.getcwd()
 
+            # Aggregate files in cwd
+            local_files = os.listdir(cwd)
+            file_names = ""
+
+            # Define the allowed extensions
+            allowed_extensions = ('.txt', '.mp3', '.wav', '.mp4', '.mkv', '.avi')
+
+            # Add file to list if it has valid extension
+            for entry in local_files:
+                # Only add files with the allowed extensions
+                if entry.endswith(allowed_extensions):
+                    file_names += f"{entry}   "
+
+            # Handle case when no files are on server
+            if file_names == "":
+                message = "No files in server's CWD."
+                client_socket.send(message.encode())
+            else:
+                client_socket.send(file_names.encode())
+
+            return self.outgoing_codes['ok']
+        
+        # Client wants to download a file off the server
+        elif message[0] == str(self.incoming_codes['download']):
+            print(f"Client has requested to download '{message[1]}'.\nSending...\n")
+
+            # Open local file in read binary mode
+            with open(message[1], "rb") as file:
+                # Break file into binary chunks
+                chunk = file.read(1024)
+
+                while chunk:
+                    client_socket.send(chunk)
+                    chunk = file.read(1024)
+
+            # Send EOF notification to server
+            client_socket.send(b"<EOF>")
+            return self.outgoing_codes['ok']
 
     # Desc: Receives a file from the client and writes it to the server's directory
     # Auth: Lang Towl
