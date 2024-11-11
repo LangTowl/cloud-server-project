@@ -167,7 +167,7 @@ class Client:
             print("\nFile not found in the current working directory.\n")
             return
         else:
-            print(f"\nPreparing to upload '{filename}...\n")
+            print(f"\nPreparing to upload '{filename}...")
 
             # Alert server to incoming file
             message = f"{self.outgoing_codes['upload']} {filename}"
@@ -178,10 +178,11 @@ class Client:
 
             # Prompt user to determine if they want to overive file
             if response == str(self.incoming_codes['file_exists']):
-                override = input("File exists on server, do you want to override this file? (y/n): ")
+                override = input("\nFile exists on server, do you want to override this file? (y/n): ")
 
                 # Escape function if they dont want to override
                 if override.lower() == "n":
+                    # TODO: SEND CODE BACK TO SERVER TELLING THEM NOT TO OVERRIDE
                     return
                 else:
                     self.client_socket.send(str(self.outgoing_codes["override"]).encode())
@@ -198,9 +199,13 @@ class Client:
             # Send EOF notification to server
             self.client_socket.send(b"<EOF>")
 
-            # Print error code
+            # Notify user based on the result of upload
             response = self.client_socket.recv(1024).decode()
-            print(response)
+
+            if response == str(self.incoming_codes['good_upload']):
+                print("\nFile uploaded to server successfully.\n")
+            else:
+                print("\nFile faield to upload to server.\n")
 
     # Desc: Request list of files from server
     # Auth: Lang Towl
