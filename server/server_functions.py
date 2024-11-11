@@ -119,23 +119,7 @@ class Server:
             print(f"Attempting to authenticate {message[1]}...\n")
 
             if message[1] in self.authenticated_users and self.authenticated_users[message[1]] == message[2]:
-                if self.user_already_online(message[1]) == False:
-                    print(f"{message[1]} authorized.\n")
-
-                    # Increase the number of active connections
-                    self.active_connections += 1
-
-                    # Send good auth code back to client
-                    client_socket.send(str(self.outgoing_codes['good_auth']).encode())
-                    self.connected_users.append(message[1])
-                    return self.outgoing_codes['good_auth']
-                else:
-                    print(f"{message[1]} already connected to network.\n")
-                    
-                    # Send bad auth code back to client and terminate connection
-                    client_socket.send(str(self.outgoing_codes['dup_user']).encode())
-                    client_socket.close()
-                    return self.outgoing_codes['bad_auth']
+                return self.authenticate_user_subroutine(message = message, client_socket = client_socket)
             else:
                 print(f"{message[1]} is not authorized.\n")
 
@@ -147,38 +131,15 @@ class Server:
         # Client wants to register themselves with server
         elif message[0] == str(self.incoming_codes['auth_new']):
             print(f"Attempting to authorize new user: {message[1]}...\n")
+
             # Check if new users credentials exist already
-            if message[1] in self.authenticated_users:
-                print(f"{message[1]} is already an existing user.\n")
-                # Tell client they provided invalid credentials
-                client_socket.send(str(self.outgoing_codes['dup_user']).encode())
-                client_socket.close()
-                return self.outgoing_codes['bad_auth']
-            else:
-                print(f"{message[1]} is now an authorized user.\n")
-                
-                # Tell client they provided valid credentials and add them to the list of authorized users
-                self.authenticated_users[message[1]] = message[2]
-                client_socket.send(str(self.outgoing_codes['user_added']).encode())
-                return self.outgoing_codes['good_auth']
+            return self.register_user_subroutine(message = message, client_socket = client_socket)
             
         # Client wants to gracefully disconect from server
         elif message[0] == str(self.incoming_codes['exit']):
             print(f"Attempting to disconnect {message[1]}.")
 
-            if message[1] in self.connected_users:
-                self.connected_users.remove(message[1])
-                self.active_connections -= 1
-
-                client_socket.send(str(self.outgoing_codes['disconnected']).encode())
-                client_socket.close()
-
-                return self.outgoing_codes['disconnected']
-            else:
-                print(f"\nRequested to remove {message[1]}, but no such user is connected.\n")
-
-                client_socket.send(self.outgoing_codes['disconnect_fail'].encode())
-                return self.outgoing_codes['disconnect_fail']
+            return self.exit_subroutine(message = message, client_socket = client_socket)
         
         # Client wants to upload file to server database
         elif message[0] == str(self.incoming_codes['upload']):
@@ -186,7 +147,7 @@ class Server:
 
             print(f'Receiving file `{file_name}` from client...\n')
 
-            self.receive_file(file_name, client_socket)
+            self.receive_file_subroutine(file_name, client_socket)
 
             client_socket.send(str(self.outgoing_codes['good_upload']).encode())
             return self.outgoing_codes['good_upload']
@@ -195,52 +156,117 @@ class Server:
         elif message[0] == str(self.incoming_codes['sls']):
             print("Client requested files listed on server.\n")
     
-            # Fetch current working directory
-            cwd = os.getcwd()
-
-            # Aggregate files in cwd
-            local_files = os.listdir(cwd)
-            file_names = ""
-
-            # Define the allowed extensions
-            allowed_extensions = ('.txt', '.mp3', '.wav', '.mp4', '.mkv', '.avi')
-
-            # Add file to list if it has valid extension
-            for entry in local_files:
-                # Only add files with the allowed extensions
-                if entry.endswith(allowed_extensions):
-                    file_names += f"{entry}   "
-
-            # Handle case when no files are on server
-            if file_names == "":
-                message = "No files in server's CWD."
-                client_socket.send(message.encode())
-            else:
-                client_socket.send(file_names.encode())
-
-            return self.outgoing_codes['ok']
+            return self.sls_subroutine(message = message, client_socket = client_socket)
         
         # Client wants to download a file off the server
         elif message[0] == str(self.incoming_codes['download']):
             print(f"Client has requested to download '{message[1]}'.\nSending...\n")
 
-            # Open local file in read binary mode
-            with open(message[1], "rb") as file:
-                # Break file into binary chunks
-                chunk = file.read(1024)
+            return self.download_subroutine(message = message, client_socket = client_socket)
+        
 
-                while chunk:
-                    client_socket.send(chunk)
-                    chunk = file.read(1024)
 
-            # Send EOF notification to server
-            client_socket.send(b"<EOF>")
-            return self.outgoing_codes['ok']
+    # Desc: Authetnicate user subroutine
+    # Auth: Lang Towl
+    # Date: 11/11/24
+    def authenticate_user_subroutine(self, message, client_socket):
+        if self.user_already_online(message[1]) == False:
+            print(f"{message[1]} authorized.\n")
+
+            # Increase the number of active connections
+            self.active_connections += 1
+
+            # Send good auth code back to client
+            client_socket.send(str(self.outgoing_codes['good_auth']).encode())
+            self.connected_users.append(message[1])
+            return self.outgoing_codes['good_auth']
+        else:
+            print(f"{message[1]} already connected to network.\n")
+                    
+            # Send bad auth code back to client and terminate connection
+            client_socket.send(str(self.outgoing_codes['dup_user']).encode())
+            client_socket.close()
+            return self.outgoing_codes['bad_auth']
+
+
+
+    # Desc: Register new authorized user
+    # Auth: Lang Towl
+    # Date: 11/11/24
+    def register_user_subroutine(self, message, client_socket):
+        if message[1] in self.authenticated_users:
+            print(f"{message[1]} is already an existing user.\n")
+            # Tell client they provided invalid credentials
+            client_socket.send(str(self.outgoing_codes['dup_user']).encode())
+            client_socket.close()
+            return self.outgoing_codes['bad_auth']
+        else:
+            print(f"{message[1]} is now an authorized user.\n")
+                
+            # Tell client they provided valid credentials and add them to the list of authorized users
+            self.authenticated_users[message[1]] = message[2]
+            client_socket.send(str(self.outgoing_codes['user_added']).encode())
+            return self.outgoing_codes['good_auth']
+        
+
+    # Desc: Disconnect client from server
+    # Auth: Lang Towl
+    # Date: 11/11/24
+    def exit_subroutine(self, message, client_socket):
+        # Check to see if requested user is currently logged in
+        if message[1] in self.connected_users:
+            # Remove user from connected user list, decrememnt active user count
+            self.connected_users.remove(message[1])
+            self.active_connections -= 1
+
+            # Update client and status of removal
+            client_socket.send(str(self.outgoing_codes['disconnected']).encode())
+            client_socket.close()
+
+            return self.outgoing_codes['disconnected']
+        else:
+            print(f"\nRequested to remove {message[1]}, but no such user is connected.\n")
+
+            client_socket.send(self.outgoing_codes['disconnect_fail'].encode())
+            return self.outgoing_codes['disconnect_fail']
+
+
+
+    # Desc: sls subroutine
+    # Auth: Lang Towl
+    # Date: 11/11/24
+    def sls_subroutine(self, message, client_socket):
+        # Fetch current working directory
+        cwd = os.getcwd()
+
+        # Aggregate files in cwd
+        local_files = os.listdir(cwd)
+        file_names = ""
+
+        # Define the allowed extensions
+        allowed_extensions = ('.txt', '.mp3', '.wav', '.mp4', '.mkv', '.avi', '.jpg', '.jpeg', '.png')
+
+        # Add file to list if it has valid extension
+        for entry in local_files:
+            # Only add files with the allowed extensions
+            if entry.endswith(allowed_extensions):
+                file_names += f"{entry}   "
+
+        # Handle case when no files are on server
+        if file_names == "":
+            message = "No files in server's CWD."
+            client_socket.send(message.encode())
+        else:
+            client_socket.send(file_names.encode())
+
+        return self.outgoing_codes['ok']
+    
+
 
     # Desc: Receives a file from the client and writes it to the server's directory
     # Auth: Lang Towl
     # Date: 11/4/24
-    def receive_file(self, file_name, client_socket):
+    def receive_file_subroutine(self, file_name, client_socket):
         try:
             # Create an open a file in write binary mode
             file_path = os.path.join(os.getcwd(), file_name)
@@ -280,3 +306,22 @@ class Server:
                     file.write(data)
         finally:
             file.close()
+    
+
+
+    # Desc: Download a file from server to client
+    # Auth: Lang Towl
+    # Date: 11/11/24
+    def download_subroutine(self, message, client_socket):
+        # Open local file in read binary mode
+        with open(message[1], "rb") as file:
+            # Break file into binary chunks
+            chunk = file.read(1024)
+
+            while chunk:
+                client_socket.send(chunk)
+                chunk = file.read(1024)
+
+        # Send EOF notification to server
+        client_socket.send(b"<EOF>")
+        return self.outgoing_codes['ok']

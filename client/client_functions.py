@@ -149,7 +149,7 @@ class Client:
         file_names = ""
 
         # Define the allowed extensions
-        allowed_extensions = ('.txt', '.mp3', '.wav', '.mp4', '.mkv', '.avi')
+        allowed_extensions = ('.txt', '.mp3', '.wav', '.mp4', '.mkv', '.avi', '.jpg', '.jpeg', '.png')
 
         for entry in local_files:
             # Only add files with the allowed extensions
