@@ -112,27 +112,17 @@ class Server:
     # Auth: Lang Towl
     # Date: 10/31/24
     def parse_message_from_client(self, message, client_socket):
-        # Switch statement to determine subroutine to run
-
+        
         # Client wishing to connect, is attempting to authorize
         if message[0] == str(self.incoming_codes['auth']):
             print(f"Attempting to authenticate {message[1]}...\n")
 
-            if message[1] in self.authenticated_users and self.authenticated_users[message[1]] == message[2]:
-                return self.authenticate_user_subroutine(message = message, client_socket = client_socket)
-            else:
-                print(f"{message[1]} is not authorized.\n")
-
-                # Send bad auth code back to client and terminate connection
-                client_socket.send(str(self.outgoing_codes['bad_auth']).encode())
-                client_socket.close()
-                return self.outgoing_codes['bad_auth']
+            return self.authenticate_user_subroutine(message = message, client_socket = client_socket)
         
         # Client wants to register themselves with server
         elif message[0] == str(self.incoming_codes['auth_new']):
             print(f"Attempting to authorize new user: {message[1]}...\n")
 
-            # Check if new users credentials exist already
             return self.register_user_subroutine(message = message, client_socket = client_socket)
             
         # Client wants to gracefully disconect from server
@@ -143,14 +133,9 @@ class Server:
         
         # Client wants to upload file to server database
         elif message[0] == str(self.incoming_codes['upload']):
-            file_name = message[1]
+            print(f'Receiving file `{message[1]}` from client...\n')
 
-            print(f'Receiving file `{file_name}` from client...\n')
-
-            self.receive_file_subroutine(file_name, client_socket)
-
-            client_socket.send(str(self.outgoing_codes['good_upload']).encode())
-            return self.outgoing_codes['good_upload']
+            return self.receive_file_subroutine(message[1], client_socket)
     
         # Client wants to know files in servers cws
         elif message[0] == str(self.incoming_codes['sls']):
@@ -170,21 +155,29 @@ class Server:
     # Auth: Lang Towl
     # Date: 11/11/24
     def authenticate_user_subroutine(self, message, client_socket):
-        if self.user_already_online(message[1]) == False:
-            print(f"{message[1]} authorized.\n")
+        if message[1] in self.authenticated_users and self.authenticated_users[message[1]] == message[2]:
+            if self.user_already_online(message[1]) == False:
+                print(f"{message[1]} authorized.\n")
 
-            # Increase the number of active connections
-            self.active_connections += 1
+                # Increase the number of active connections
+                self.active_connections += 1
 
-            # Send good auth code back to client
-            client_socket.send(str(self.outgoing_codes['good_auth']).encode())
-            self.connected_users.append(message[1])
-            return self.outgoing_codes['good_auth']
-        else:
-            print(f"{message[1]} already connected to network.\n")
+                # Send good auth code back to client
+                client_socket.send(str(self.outgoing_codes['good_auth']).encode())
+                self.connected_users.append(message[1])
+                return self.outgoing_codes['good_auth']
+            else:
+                print(f"{message[1]} already connected to network.\n")
                     
+                # Send bad auth code back to client and terminate connection
+                client_socket.send(str(self.outgoing_codes['dup_user']).encode())
+                client_socket.close()
+                return self.outgoing_codes['bad_auth']
+        else:
+            print(f"{message[1]} is not authorized.\n")
+
             # Send bad auth code back to client and terminate connection
-            client_socket.send(str(self.outgoing_codes['dup_user']).encode())
+            client_socket.send(str(self.outgoing_codes['bad_auth']).encode())
             client_socket.close()
             return self.outgoing_codes['bad_auth']
 
@@ -283,7 +276,8 @@ class Server:
                     print("Permission to override granted.\n")
                 else:
                     print("Permission to override denied.\n")
-                    return
+                    client_socket.send(str(self.outgoing_codes['bad_upload']).encode()) 
+                    return self.outgoing_codes['bad_upload']
             else:
                 client_socket.send(str(self.outgoing_codes['good_upload']).encode())    
 
@@ -304,6 +298,9 @@ class Server:
                     
                     # Write data to open file
                     file.write(data)
+            
+            client_socket.send(str(self.outgoing_codes['good_upload']).encode())
+            return self.outgoing_codes['good_upload']
         finally:
             file.close()
     
