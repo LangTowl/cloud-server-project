@@ -38,7 +38,8 @@ class Server:
             "override": 203,
             "no_override": 204,
             "sls": 301,
-            "download": 302
+            "download": 302,
+            "rm": 303
         }
 
 
@@ -148,6 +149,11 @@ class Server:
             print(f"Client has requested to download '{message[1]}'.\nSending...\n")
 
             return self.download_subroutine(message = message, client_socket = client_socket)
+        
+        elif message[0] == str(self.incoming_codes['rm']):
+            print(f"Client has requested to delete '{message[1]}'.\nSending...\n")
+
+            return self.delete_subroutine(message = message, client_socket = client_socket)
         
 
 
@@ -322,3 +328,21 @@ class Server:
         # Send EOF notification to server
         client_socket.send(b"<EOF>")
         return self.outgoing_codes['ok']
+
+
+    # Desc: Delete a File on Server side from client request
+    # Auth: Lukas kelk
+    # Date: 11/16/24
+    def delete_subroutine(self, message, client_socket):
+
+        path = os.path.join(os.getcwd(), message[1])
+
+        if os.path.exists(path):
+            #if the file path exists remove, 
+            os.remove(path)
+            print(f"\nFile '{message[1]}' has been deleted successfully.\n")
+            client_socket.send(str(self.outgoing_codes['ok']).encode())
+        else:
+            # File does not exist
+            print(f"\nFile '{message[1]}' does not exist on server.\n")
+            client_socket.send(str(self.outgoing_codes['bad_upload']).encode())
