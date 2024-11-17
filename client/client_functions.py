@@ -40,6 +40,7 @@ class Client:
             "good_upload": 203,
             "bad_upload": 204,
             "file_exists": 205,
+            "file_DNE": 206,
             "ok": 200
         }
 
@@ -284,5 +285,5 @@ class Client:
         #handlinlg the response from the server
         if response == str(self.incoming_codes['ok']):
             print(f"\nThe file '{file_name}' has been successfully deleted from the server.\n")
-        elif response == str(self.incoming_codes['bad_upload']):
+        elif response == str(self.incoming_codes['file_DNE']):
             print(f"\nFailed to delete the file '{file_name}' from the server. This File might not exist.\n")

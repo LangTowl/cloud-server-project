@@ -28,6 +28,7 @@ class Server:
             "good_upload": 203,
             "bad_upload": 204,
             "file_exists": 205,
+            "file_DNE": 206,
             "ok": 200
         }
         self.incoming_codes = {
@@ -90,6 +91,8 @@ class Server:
                     print("File successfully uploaded.\n")
                 elif result == self.outgoing_codes['ok']:
                     print("Client requested fulfilled.\n")
+                elif result == self.outgoing_codes['file_DNE']:
+                    print("There is no file with that path.\n")
                 else:
                     break
             except Exception as error:
@@ -342,7 +345,9 @@ class Server:
             os.remove(path)
             print(f"\nFile '{message[1]}' has been deleted successfully.\n")
             client_socket.send(str(self.outgoing_codes['ok']).encode())
+            return self.outgoing_codes['ok']
         else:
             # File does not exist
             print(f"\nFile '{message[1]}' does not exist on server.\n")
-            client_socket.send(str(self.outgoing_codes['bad_upload']).encode())
+            client_socket.send(str(self.outgoing_codes['file_DNE']).encode())
+            return self.outgoing_codes['file_DNE']
