@@ -149,12 +149,12 @@ class Server:
         
         # Client wants to download a file off the server
         elif message[0] == str(self.incoming_codes['download']):
-            print(f"Client has requested to download '{message[1]}'.\nSending...\n")
+            print(f"Client has requested to download '{message[1]}'.\n\nSending...\n")
 
             return self.download_subroutine(message = message, client_socket = client_socket)
         
         elif message[0] == str(self.incoming_codes['rm']):
-            print(f"Client has requested to delete '{message[1]}'.\nSending...\n")
+            print(f"Client has requested to delete '{message[1]}'.\n")
 
             return self.delete_subroutine(message = message, client_socket = client_socket)
         
@@ -343,7 +343,7 @@ class Server:
         if os.path.exists(path):
             #if the file path exists remove, 
             os.remove(path)
-            print(f"\nFile '{message[1]}' has been deleted successfully.\n")
+            print(f"File '{message[1]}' has been deleted successfully.\n")
             client_socket.send(str(self.outgoing_codes['ok']).encode())
             return self.outgoing_codes['ok']
         else:

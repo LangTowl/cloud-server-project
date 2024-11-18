@@ -273,7 +273,7 @@ class Client:
     # Date: 11/16/24
     def delete_file_subroutine(self, file_name):
         
-        print(f"Requesting to delete '{file_name}' from the server...\n")
+        print(f"\nRequesting to delete '{file_name}' from the server...\n")
 
         #send message code rm
         message = f"{self.outgoing_codes['rm']} {file_name}"
@@ -284,6 +284,6 @@ class Client:
 
         #handlinlg the response from the server
         if response == str(self.incoming_codes['ok']):
-            print(f"\nThe file '{file_name}' has been successfully deleted from the server.\n")
+            print(f"The file '{file_name}' has been successfully deleted from the server.\n")
         elif response == str(self.incoming_codes['file_DNE']):
-            print(f"\nFailed to delete the file '{file_name}' from the server. This File might not exist.\n")
+            print(f"Failed to delete the file '{file_name}' from the server. This File might not exist.\n")
