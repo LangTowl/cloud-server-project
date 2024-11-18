@@ -2,7 +2,7 @@
 
 import socket
 import os
-
+import time
 
 # Desc: Client object
 # Auth: Lang Towl
