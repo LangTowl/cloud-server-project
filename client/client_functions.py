@@ -200,12 +200,14 @@ class Client:
                     return
                 else:
                     self.client_socket.send(str(self.outgoing_codes["override"]).encode())
-                     
+
+            #*************************************
             if METRIC:
                 #get size of file in bits
                 fileSize = os.path.getsize(os.path.abspath(filename))
                 #for performance metrics
                 intialUploadtime = time.perf_counter()
+            #*************************************
 
             # Open local file in read binary mode
             with open(filename, "rb") as file:
@@ -219,6 +221,7 @@ class Client:
             # Send EOF notification to server
             self.client_socket.send(b"<EOF>")
 
+            #*************************************
             if METRIC:
                 #record finshed upload time
                 finishedUploadTime = time.perf_counter()
@@ -230,6 +233,7 @@ class Client:
                     uploadSpeed = (fileSize * 8) / (duration * (10**6))
                 else:
                     uploadSpeed = "Too Small"
+            #*************************************
 
             #get response from server
             response = self.client_socket.recv(1024).decode()
@@ -237,8 +241,10 @@ class Client:
             # Notify user based on the result of upload
             if response == str(self.incoming_codes['good_upload']):
                 print("\nFile uploaded to server successfully.\n")
+                #*************************************
                 if METRIC:
                     print(f"Upload Speed:{uploadSpeed:.4f} Mbps\n")
+                #*************************************
             else:
                 print("\nFile failed to upload to server.\n")
 
@@ -318,12 +324,11 @@ class Client:
         elif response == str(self.incoming_codes['file_DNE']):
             print(f"Failed to delete the file '{file_name}' from the server. This File might not exist.\n")
    
-    # Desc: set metrics to true or falsesubroutine
+    # Desc: set toggles metric flag on and off
     # Auth: Lukas Kelk
     # Date: 11/16/24
     def set_METRIC_subroutine(self):
         global METRIC
-        
         if(METRIC):
             METRIC = False
             print("\nThe Client will no longer give performance metrics\n")
