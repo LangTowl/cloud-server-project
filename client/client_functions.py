@@ -27,7 +27,8 @@ class Client:
             "override": 203,
             "no_override": 204,
             "sls": 301,
-            "download": 302
+            "download": 302,
+            "rm": 303
         }
         self.incoming_codes = {
             "good_auth": 100,
@@ -38,7 +39,9 @@ class Client:
             "disconnect_fail": 105,
             "good_upload": 203,
             "bad_upload": 204,
-            "file_exists": 205
+            "file_exists": 205,
+            "file_DNE": 206,
+            "ok": 200
         }
 
 
@@ -122,6 +125,8 @@ class Client:
             self.sls_subroutine()
         elif command_components[0] == "download":
             self.dowload_file_subroutine(command_components[1])
+        elif command_components[0] == "rm":
+            self.delete_file_subroutine(command_components[1])
     
     # Desc: Exit subroutine
     # Auth: Lang Towl
@@ -262,3 +267,23 @@ class Client:
         # If file doesn't exists on server
         else:
             print("\nFile does not exist on server.\n")
+    
+    # Desc: Delete file from server
+    # Auth: Lukas Kelk
+    # Date: 11/16/24
+    def delete_file_subroutine(self, file_name):
+        
+        print(f"\nRequesting to delete '{file_name}' from the server...\n")
+
+        #send message code rm
+        message = f"{self.outgoing_codes['rm']} {file_name}"
+        self.client_socket.send(message.encode())
+
+        #wait for response from the server
+        response = self.client_socket.recv(1024).decode()
+
+        #handlinlg the response from the server
+        if response == str(self.incoming_codes['ok']):
+            print(f"The file '{file_name}' has been successfully deleted from the server.\n")
+        elif response == str(self.incoming_codes['file_DNE']):
+            print(f"Failed to delete the file '{file_name}' from the server. This File might not exist.\n")

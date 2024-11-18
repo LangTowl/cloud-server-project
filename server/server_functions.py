@@ -28,6 +28,7 @@ class Server:
             "good_upload": 203,
             "bad_upload": 204,
             "file_exists": 205,
+            "file_DNE": 206,
             "ok": 200
         }
         self.incoming_codes = {
@@ -38,7 +39,8 @@ class Server:
             "override": 203,
             "no_override": 204,
             "sls": 301,
-            "download": 302
+            "download": 302,
+            "rm": 303
         }
 
 
@@ -89,6 +91,8 @@ class Server:
                     print("File successfully uploaded.\n")
                 elif result == self.outgoing_codes['ok']:
                     print("Client requested fulfilled.\n")
+                elif result == self.outgoing_codes['file_DNE']:
+                    print("There is no file with that path.\n")
                 else:
                     break
             except Exception as error:
@@ -145,9 +149,14 @@ class Server:
         
         # Client wants to download a file off the server
         elif message[0] == str(self.incoming_codes['download']):
-            print(f"Client has requested to download '{message[1]}'.\nSending...\n")
+            print(f"Client has requested to download '{message[1]}'.\n\nSending...\n")
 
             return self.download_subroutine(message = message, client_socket = client_socket)
+        
+        elif message[0] == str(self.incoming_codes['rm']):
+            print(f"Client has requested to delete '{message[1]}'.\n")
+
+            return self.delete_subroutine(message = message, client_socket = client_socket)
         
 
 
@@ -322,3 +331,23 @@ class Server:
         # Send EOF notification to server
         client_socket.send(b"<EOF>")
         return self.outgoing_codes['ok']
+
+
+    # Desc: Delete a File on Server side from client request
+    # Auth: Lukas kelk
+    # Date: 11/16/24
+    def delete_subroutine(self, message, client_socket):
+
+        path = os.path.join(os.getcwd(), message[1])
+
+        if os.path.exists(path):
+            #if the file path exists remove, 
+            os.remove(path)
+            print(f"File '{message[1]}' has been deleted successfully.\n")
+            client_socket.send(str(self.outgoing_codes['ok']).encode())
+            return self.outgoing_codes['ok']
+        else:
+            # File does not exist
+            print(f"\nFile '{message[1]}' does not exist on server.\n")
+            client_socket.send(str(self.outgoing_codes['file_DNE']).encode())
+            return self.outgoing_codes['file_DNE']
