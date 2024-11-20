@@ -185,10 +185,17 @@ class Client:
 
             # Alert server to incoming file
             message = f"{self.outgoing_codes['upload']} {filename}"
+
+            if METRIC:
+                sendRequest = time.perf_counter()
+
             self.client_socket.send(message.encode())
 
             # Wait for status update of file upload
             response = self.client_socket.recv(1024).decode()
+
+            if METRIC:
+                gotRequest = time.perf_counter()
 
             # Prompt user to determine if they want to overive file
             if response == str(self.incoming_codes['file_exists']):
@@ -201,13 +208,12 @@ class Client:
                 else:
                     self.client_socket.send(str(self.outgoing_codes["override"]).encode())
 
-            #*************************************
             if METRIC:
                 #get size of file in bits
                 fileSize = os.path.getsize(os.path.abspath(filename))
                 #for performance metrics
                 intialUploadtime = time.perf_counter()
-            #*************************************
+            
 
             # Open local file in read binary mode
             with open(filename, "rb") as file:
@@ -221,7 +227,7 @@ class Client:
             # Send EOF notification to server
             self.client_socket.send(b"<EOF>")
 
-            #*************************************
+       
             if METRIC:
                 #record finshed upload time
                 finishedUploadTime = time.perf_counter()
@@ -233,7 +239,7 @@ class Client:
                     uploadSpeed = (fileSize * 8) / (duration * (10**6))
                 else:
                     uploadSpeed = "Too Small"
-            #*************************************
+       
 
             #get response from server
             response = self.client_socket.recv(1024).decode()
@@ -241,10 +247,12 @@ class Client:
             # Notify user based on the result of upload
             if response == str(self.incoming_codes['good_upload']):
                 print("\nFile uploaded to server successfully.\n")
-                #*************************************
+         
                 if METRIC:
+                    print(f"Sever Response Time:{(gotRequest - sendRequest) * (10**3):.6f} ms")
+                    print(f"File Upload Time:{duration * (10**3):.6f} ms")
                     print(f"Upload Speed:{uploadSpeed:.4f} Mbps\n")
-                #*************************************
+                
             else:
                 print("\nFile failed to upload to server.\n")
 
@@ -260,9 +268,9 @@ class Client:
         response = self.client_socket.recv(1024).decode()
         print(f"\n{response}\n")
 
-    # Desc: Request list of files from server
-    # Auth: Lang Towl
-    # Date: 11/4/24
+    # Desc: Request list of files from server / metrics
+    # Auth: Lang Towl / Lukas Kelk
+    # Date: 11/4/24 / 11/20/24
     def dowload_file_subroutine(self, file_name):
         # Check to see if file exists on server
         message = f"{self.outgoing_codes['sls']}"
@@ -279,26 +287,58 @@ class Client:
 
                 # Request download initiation
                 request_dowload = f"{self.outgoing_codes['download']} {file_name}"
+                if METRIC:
+                    sendRequest = time.perf_counter()
                 self.client_socket.send(request_dowload.encode())
+
+                if(METRIC):
+                    #for performance metrics
+                    intialDownloadtime = time.perf_counter()    
 
                 # Loop to copy contents of incoming chunks to file, open file in write binary mode
                 with open(file_path, "wb") as file:
                     print("\nDownloading file...\n")
-                    
+
+                    firstTime = True
+
                     while True:
+
                         # Recieve data from client in chunks
                         data = self.client_socket.recv(1024)
 
+                        if firstTime:
+                            if METRIC:
+                                gotRequest = time.perf_counter()
+
                         # Escape sequence to run once end of file is reached
                         if b"<EOF>" in data:
+
+                            if METRIC:
+                                #record finshed upload time
+                                finishedDownloadTime = time.perf_counter()
+
                             file.write(data.replace(b"<EOF>", b""))
                             print(f"Finished recieving file '{file_name}'.\n")
                             break
-                        
+    
                         # Write data to open file
                         file.write(data)
             finally:
                 file.close()
+
+                if METRIC:
+                    #get size of file in bits
+                    fileSize = os.path.getsize(file_path)
+                    #get duration
+                    duration = (finishedDownloadTime - intialDownloadtime)
+                    #in Mbps
+                    if duration > 0:
+                        speed = (fileSize * 8) / (duration * (10**6))
+                    else:
+                        speed = "Too Small"
+                    print(f"Sever Response Time:{(gotRequest - sendRequest) * (10**3):.6f} ms")
+                    print(f"File Download Time:{duration * (10**3):.6f} ms")
+                    print(f"Download Speed:{speed:.4f} Mbps\n")
 
         # If file doesn't exists on server
         else:
