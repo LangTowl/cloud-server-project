@@ -3,8 +3,8 @@
 import socket
 import os
 import time
-
-METRIC = False
+import analysis as metric
+from analysis import METRIC
 
 # Desc: Client object
 # Auth: Lang Towl
@@ -209,8 +209,6 @@ class Client:
                     self.client_socket.send(str(self.outgoing_codes["override"]).encode())
 
             if METRIC:
-                #get size of file in bits
-                fileSize = os.path.getsize(os.path.abspath(filename))
                 #for performance metrics
                 intialUploadtime = time.perf_counter()
             
@@ -231,14 +229,6 @@ class Client:
             if METRIC:
                 #record finshed upload time
                 finishedUploadTime = time.perf_counter()
-                    
-                #get duration
-                duration = (finishedUploadTime - intialUploadtime)
-                #in Mbps
-                if duration > 0:
-                    uploadSpeed = (fileSize * 8) / (duration * (10**6))
-                else:
-                    uploadSpeed = "Too Small"
        
 
             #get response from server
@@ -248,10 +238,8 @@ class Client:
             if response == str(self.incoming_codes['good_upload']):
                 print("\nFile uploaded to server successfully.\n")
          
-                if METRIC:
-                    print(f"Sever Response Time:{(gotRequest - sendRequest) * (10**3):.6f} ms")
-                    print(f"File Upload Time:{duration * (10**3):.6f} ms")
-                    print(f"Upload Speed:{uploadSpeed:.4f} Mbps\n")
+            if METRIC:
+                metric.log_upload_metircs(sendRequest,gotRequest,finishedUploadTime,intialUploadtime,os.path.abspath(filename))
                 
             else:
                 print("\nFile failed to upload to server.\n")
@@ -328,7 +316,7 @@ class Client:
 
                 if METRIC:
                     #get size of file in bits
-                    fileSize = os.path.getsize(file_path)
+                    fileSize = metric.calculate_file_size(file_path)
                     #get duration
                     duration = (finishedDownloadTime - intialDownloadtime)
                     #in Mbps
@@ -336,6 +324,7 @@ class Client:
                         speed = (fileSize * 8) / (duration * (10**6))
                     else:
                         speed = "Too Small"
+
                     print(f"Sever Response Time:{(gotRequest - sendRequest) * (10**3):.6f} ms")
                     print(f"File Download Time:{duration * (10**3):.6f} ms")
                     print(f"Download Speed:{speed:.4f} Mbps\n")
