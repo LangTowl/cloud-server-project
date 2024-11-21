@@ -3,7 +3,7 @@
 import socket
 import os
 import time
-import analysis as metric
+import analysis as analysis
 from analysis import METRIC
 
 # Desc: Client object
@@ -239,7 +239,7 @@ class Client:
                 print("\nFile uploaded to server successfully.\n")
          
             if METRIC:
-                metric.log_upload_metircs(sendRequest,gotRequest,finishedUploadTime,intialUploadtime,os.path.abspath(filename))
+                analysis.log_upload_metircs(sendRequest,gotRequest,finishedUploadTime,intialUploadtime,os.path.abspath(filename))
                 
             else:
                 print("\nFile failed to upload to server.\n")
@@ -296,6 +296,7 @@ class Client:
 
                         if firstTime:
                             if METRIC:
+                                firstTime = False
                                 gotRequest = time.perf_counter()
 
                         # Escape sequence to run once end of file is reached
@@ -315,19 +316,7 @@ class Client:
                 file.close()
 
                 if METRIC:
-                    #get size of file in bits
-                    fileSize = metric.calculate_file_size(file_path)
-                    #get duration
-                    duration = (finishedDownloadTime - intialDownloadtime)
-                    #in Mbps
-                    if duration > 0:
-                        speed = (fileSize * 8) / (duration * (10**6))
-                    else:
-                        speed = "Too Small"
-
-                    print(f"Sever Response Time:{(gotRequest - sendRequest) * (10**3):.6f} ms")
-                    print(f"File Download Time:{duration * (10**3):.6f} ms")
-                    print(f"Download Speed:{speed:.4f} Mbps\n")
+                    analysis.log_download_metircs(sendRequest,gotRequest,finishedDownloadTime,intialDownloadtime,os.path.abspath(file_name))
 
         # If file doesn't exists on server
         else:
