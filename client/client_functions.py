@@ -131,7 +131,7 @@ class Client:
         elif command_components[0] == "rm":
             self.delete_file_subroutine(command_components[1])
         elif command_components[0] == "test":
-            self.set_METRIC_subroutine()
+            analysis.set_METRIC()
     
     # Desc: Exit subroutine
     # Auth: Lang Towl
@@ -342,14 +342,4 @@ class Client:
         elif response == str(self.incoming_codes['file_DNE']):
             print(f"Failed to delete the file '{file_name}' from the server. This File might not exist.\n")
    
-    # Desc: set toggles metric flag on and off
-    # Auth: Lukas Kelk
-    # Date: 11/16/24
-    def set_METRIC_subroutine(self):
-        global METRIC
-        if(METRIC):
-            METRIC = False
-            print("\nThe Client will no longer give performance metrics\n")
-        else:
-            METRIC = True
-            print("\nThe Client will now give performance metrics\n")
+    
