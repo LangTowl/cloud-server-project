@@ -15,6 +15,7 @@ class Client:
         self.port = port
         self.username = username
         self.password = password
+        self.s_cwd = ""
         self.authenticated = False
         self.key = None
         self.client_socket = None
@@ -26,9 +27,14 @@ class Client:
             "upload": 202,
             "override": 203,
             "no_override": 204,
+            "s_pwd": 205,
             "sls": 301,
             "download": 302,
-            "rm": 303
+            "rm": 303,
+            "mkdir": 304,
+            "rmdir": 305,
+            "cd": 306
+
         }
         self.incoming_codes = {
             "good_auth": 100,
@@ -41,6 +47,9 @@ class Client:
             "bad_upload": 204,
             "file_exists": 205,
             "file_DNE": 206,
+            "dir_AE": 207,
+            "dir_DNE": 208,
+            "dir_top": 209,
             "ok": 200
         }
 
@@ -80,6 +89,10 @@ class Client:
             print("User with same credentials is already connected to network. Connection will be closed.\n")
             self.client_socket.close()
 
+        response = self.client_socket.recv(1024).decode()
+        self.s_cwd = response
+        print(self.s_cwd)
+
         return self.authenticated
 
     # Desc: Contacts server to authenticate client
@@ -97,6 +110,9 @@ class Client:
             print("\nRequest received by server. Waiting for server to vailidate new client...")
         elif response == str(self.incoming_codes['dup_user']):
             print("\nA user with these credentials already exists.\n")
+
+        response = self.client_socket.recv(1024).decode()
+        self.s_cwd = response
 
     # Desc: Check validity of instruction
     # Auth: Lang Towl
@@ -127,7 +143,15 @@ class Client:
             self.dowload_file_subroutine(command_components[1])
         elif command_components[0] == "rm":
             self.delete_file_subroutine(command_components[1])
-    
+        elif command_components[0] == "mkdir":
+            self.make_directory_subroutine(command_components[1])
+        elif command_components[0] == "rmdir":
+            self.delete_directory_subroutine(command_components[1])
+        elif command_components[0] == "cd":
+            self.change_directory_subroutine(command_components[1])
+        elif command_components[0] == "s_pwd":
+            self.server_pwd()    
+
     # Desc: Exit subroutine
     # Auth: Lang Towl
     # Date: 11/4/24
@@ -287,3 +311,66 @@ class Client:
             print(f"The file '{file_name}' has been successfully deleted from the server.\n")
         elif response == str(self.incoming_codes['file_DNE']):
             print(f"Failed to delete the file '{file_name}' from the server. This File might not exist.\n")
+
+    # Desc: Make new directory in server
+    # Auth: Spencer T. Robinson
+    # Date: 11/21/24
+    def make_directory_subroutine(self, folderName):
+        file_path = self.s_cwd + folderName
+        print(f"\nCreating new folder file path '{file_path}'.\n")
+
+        message = f"{self.outgoing_codes['mkdir']} {file_path}"
+        self.client_socket.send(message.encode())
+        print(f"Sent '{folderName}' to the server.\n")
+
+        #wait for response from the server
+        response = self.client_socket.recv(1024).decode()
+
+        if response == str(self.incoming_codes['ok']):
+            print(f"The directory '{file_path}', has been succcesfully created.\n")
+        elif response == str(self.incoming_codes['dir_AE']):
+            print(f"The directory '{file_path}', already exists.\n")
+
+    # Desc: Delete a directory in server
+    # Auth: Spencer T. Robinson
+    # Date: 11/21/24
+    def delete_directory_subroutine(self, folderName):
+        file_path = self.s_cwd + folderName
+        print(f"Requested '{file_path}' be deleted from the server.\n")
+
+        message = f"{self.outgoing_codes['rmdir']} {file_path}"
+        self.client_socket.send(message.encode())
+
+        #wait for response from the server
+        response = self.client_socket.recv(1024).decode()
+
+        if response == str(self.incoming_codes['ok']):
+            print(f"The directory '{file_path}', has been succcesfully deleted.\n")
+        elif response == str(self.incoming_codes['dir_DNE']):
+            print(f"The directory '{file_path}', does not exist.\n")
+
+    def change_directory_subroutine(self, folderName):
+        
+        if(folderName == ".."):
+            file_path = os.path.dirname(self.s_cwd)
+        else:
+            file_path = self.s_cwd + folderName
+        
+        print(f"Request to change the server directory to '{file_path}'.\n")
+
+        message = f"{self.outgoing_codes['cd']} {file_path}"
+        self.client_socket.send(message.encode())
+
+        #wait for response from the server
+        response = self.client_socket.recv(1024).decode()
+
+        if response == str(self.incoming_codes['ok']):
+            print(f"The directory has been succcesfully changed to '{file_path}'.\n")
+            self.s_cwd = file_path
+        elif response == str(self.incoming_codes['dir_DNE']):
+            print(f"The directory '{file_path}', does not exist.\n")
+        elif response == str(self.incoming_codes['dir_top']):
+            print(f"Unable to move up directory.\n")
+
+    def server_pwd(self):
+        print(f"The current server working directory is '{self.s_cwd}'.\n")
