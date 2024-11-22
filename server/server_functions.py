@@ -15,6 +15,7 @@ class Server:
     def __init__(self, ip = '0.0.0.0', port = 8080):
         self.ip = ip
         self.port = port
+        self.home = os.getcwd()
         self.server_socket = None
         self.active_connections = 0
         self.connected_users = []
@@ -425,7 +426,7 @@ class Server:
         print("Entered change_directory_subroutine\n")
 
         #slightly hardcoded file path req, in order to limit cd ..
-        if(os.path.basename(message[1]) == "cloud-server-project"): 
+        if(len(message[1]) < len(self.home)): 
             print(f"Unable to move up directory\n")
             client_socket.send(str(self.outgoing_codes['dir_top']).encode())
             return self.outgoing_codes['dir_top']

@@ -364,6 +364,7 @@ class Client:
         #wait for response from the server
         response = self.client_socket.recv(1024).decode()
 
+        #adding a random comment to force commit condition
         if response == str(self.incoming_codes['ok']):
             print(f"The directory has been succcesfully changed to '{file_path}'.\n")
             self.s_cwd = file_path
