@@ -13,7 +13,7 @@ class Client:
     # Desc: Client object initializer
     # Auth: Lang Towl
     # Date: 11/1/24
-    def __init__(self, ip = '127.0.0.1', port = 8080, username = None, password = None, timeout = 10):
+    def __init__(self, ip = '127.0.0.1', port = 8080, username = None, password = None, timeout = 5):
         self.ip = ip
         self.port = port
         self.username = username
