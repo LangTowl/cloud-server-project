@@ -78,22 +78,23 @@ class Client:
 
         # Wait for authentication response from server
         response = self.client_socket.recv(1024).decode()
+        components = response.split()
 
         # Process server response
-        if response == str(self.incoming_codes['good_auth']):
+        if components[0] == str(self.incoming_codes['good_auth']):
             self.authenticated = True
             print("\nAuthentication successful. You are now connected to the server.\n")
-        elif response == str(self.incoming_codes['bad_auth']):
+        elif components[0] == str(self.incoming_codes['bad_auth']):
             print("\nAuthentication failed. Connection will be closed.\n")
             self.client_socket.close()
-        elif response == str(self.incoming_codes['dup_user']):
+        elif components[0] == str(self.incoming_codes['dup_user']):
             print("User with same credentials is already connected to network. Connection will be closed.\n")
             self.client_socket.close()
 
-        response = self.client_socket.recv(1024).decode()
-        self.s_cwd = response
-        self.s_cwd_constant = response
-        print(self.s_cwd)
+        # If good auth, update server current working directory
+        if len(components) > 1:
+            self.s_cwd = components[1]
+            self.s_cwd_constant = components[1]
 
         return self.authenticated
 

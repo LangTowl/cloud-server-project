@@ -200,11 +200,10 @@ class Server:
                 self.active_connections += 1
 
                 # Send good auth code back to client
-                client_socket.send(str(self.outgoing_codes['good_auth']).encode())
+                response = f"{self.outgoing_codes['good_auth']} {self.home}"
+                client_socket.send(str(response).encode())
                 self.connected_users.append(message[1])
 
-                message = str(self.home)
-                client_socket.send(message.encode())
                 return self.outgoing_codes['good_auth']
             else:
                 print(f"{message[1]} already connected to network.\n")
