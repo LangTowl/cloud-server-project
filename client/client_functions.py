@@ -2,6 +2,9 @@
 
 import socket
 import os
+import time
+import analysis as analysis
+from analysis import METRIC
 
 # Desc: Client object
 # Auth: Lang Towl
@@ -104,7 +107,7 @@ class Client:
     def validate_command(self, command):
         commands = command.split()
 
-        if commands[0] in self.outgoing_codes:
+        if commands[0] in self.outgoing_codes or commands[0] == "test":
             return True
         else:
             return False
@@ -127,6 +130,8 @@ class Client:
             self.dowload_file_subroutine(command_components[1])
         elif command_components[0] == "rm":
             self.delete_file_subroutine(command_components[1])
+        elif command_components[0] == "test":
+            analysis.set_METRIC()
     
     # Desc: Exit subroutine
     # Auth: Lang Towl
@@ -163,23 +168,34 @@ class Client:
         
         print(f"\n{file_names}\n")
 
-    # Desc: Upload file subroutine
-    # Auth: Lang Towl
-    # Date: 11/4/24
+    # Desc: Upload file subroutine (metrics added by LK)
+    # Auth: Lang Towl / Lukas Kelk
+    # Date: 11/4/24 / 11/18/24
     def upload_file_subroutine(self, filename):
+        
+        #flag for marking the test
+        global METRIC
+
         # Check to see if specific file is in cwd
         if not os.path.exists(filename):
             print("\nFile not found in the current working directory.\n")
             return
         else:
-            print(f"\nPreparing to upload '{filename}...")
+            print(f"\nPreparing to upload '{filename}'...")
 
             # Alert server to incoming file
             message = f"{self.outgoing_codes['upload']} {filename}"
+
+            if METRIC:
+                sendRequest = time.perf_counter()
+
             self.client_socket.send(message.encode())
 
             # Wait for status update of file upload
             response = self.client_socket.recv(1024).decode()
+
+            if METRIC:
+                gotRequest = time.perf_counter()
 
             # Prompt user to determine if they want to overive file
             if response == str(self.incoming_codes['file_exists']):
@@ -187,11 +203,16 @@ class Client:
 
                 # Escape function if they dont want to override
                 if override.lower() == "n":
-                    # TODO: SEND CODE BACK TO SERVER TELLING THEM NOT TO OVERRIDE
+                    #TODO: SEND CODE BACK TO SERVER TELLING THEM NOT TO OVERRIDE
                     return
                 else:
                     self.client_socket.send(str(self.outgoing_codes["override"]).encode())
+
+            if METRIC:
+                #for performance metrics
+                intialUploadtime = time.perf_counter()
             
+
             # Open local file in read binary mode
             with open(filename, "rb") as file:
                 # Break file into binary chunks
@@ -200,17 +221,28 @@ class Client:
                 while chunk:
                     self.client_socket.send(chunk)
                     chunk = file.read(1024)
-
+            
             # Send EOF notification to server
             self.client_socket.send(b"<EOF>")
 
-            # Notify user based on the result of upload
+       
+            if METRIC:
+                #record finshed upload time
+                finishedUploadTime = time.perf_counter()
+       
+
+            #get response from server
             response = self.client_socket.recv(1024).decode()
 
+            # Notify user based on the result of upload
             if response == str(self.incoming_codes['good_upload']):
                 print("\nFile uploaded to server successfully.\n")
+         
+            if METRIC:
+                analysis.log_upload_metircs(sendRequest,gotRequest,finishedUploadTime,intialUploadtime,os.path.abspath(filename))
+                
             else:
-                print("\nFile faield to upload to server.\n")
+                print("\nFile failed to upload to server.\n")
 
     # Desc: Request list of files from server
     # Auth: Lang Towl
@@ -224,9 +256,9 @@ class Client:
         response = self.client_socket.recv(1024).decode()
         print(f"\n{response}\n")
 
-    # Desc: Request list of files from server
-    # Auth: Lang Towl
-    # Date: 11/4/24
+    # Desc: Request list of files from server / metrics
+    # Auth: Lang Towl / Lukas Kelk
+    # Date: 11/4/24 / 11/20/24
     def dowload_file_subroutine(self, file_name):
         # Check to see if file exists on server
         message = f"{self.outgoing_codes['sls']}"
@@ -243,26 +275,48 @@ class Client:
 
                 # Request download initiation
                 request_dowload = f"{self.outgoing_codes['download']} {file_name}"
+                if METRIC:
+                    sendRequest = time.perf_counter()
                 self.client_socket.send(request_dowload.encode())
+
+                if(METRIC):
+                    #for performance metrics
+                    intialDownloadtime = time.perf_counter()    
 
                 # Loop to copy contents of incoming chunks to file, open file in write binary mode
                 with open(file_path, "wb") as file:
                     print("\nDownloading file...\n")
-                    
+
+                    firstTime = True
+
                     while True:
+
                         # Recieve data from client in chunks
                         data = self.client_socket.recv(1024)
 
+                        if firstTime:
+                            if METRIC:
+                                firstTime = False
+                                gotRequest = time.perf_counter()
+
                         # Escape sequence to run once end of file is reached
                         if b"<EOF>" in data:
+
+                            if METRIC:
+                                #record finshed upload time
+                                finishedDownloadTime = time.perf_counter()
+
                             file.write(data.replace(b"<EOF>", b""))
                             print(f"Finished recieving file '{file_name}'.\n")
                             break
-                        
+    
                         # Write data to open file
                         file.write(data)
             finally:
                 file.close()
+
+                if METRIC:
+                    analysis.log_download_metircs(sendRequest,gotRequest,finishedDownloadTime,intialDownloadtime,os.path.abspath(file_name))
 
         # If file doesn't exists on server
         else:
@@ -287,3 +341,5 @@ class Client:
             print(f"The file '{file_name}' has been successfully deleted from the server.\n")
         elif response == str(self.incoming_codes['file_DNE']):
             print(f"Failed to delete the file '{file_name}' from the server. This File might not exist.\n")
+   
+    
