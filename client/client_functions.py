@@ -4,7 +4,7 @@ import socket
 import os
 import time
 import analysis as analysis
-from analysis import METRIC
+METRIC = False
 
 # Desc: Client object
 # Auth: Lang Towl
@@ -13,7 +13,7 @@ class Client:
     # Desc: Client object initializer
     # Auth: Lang Towl
     # Date: 11/1/24
-    def __init__(self, ip = '127.0.0.1', port = 8080, username = None, password = None):
+    def __init__(self, ip = '127.0.0.1', port = 8080, username = None, password = None, timeout = 10):
         self.ip = ip
         self.port = port
         self.username = username
@@ -23,6 +23,7 @@ class Client:
         self.authenticated = False
         self.key = None
         self.client_socket = None
+        self.timeout = timeout
         self.outgoing_codes = {
             "auth": 100,
             "auth_new": 101,
@@ -69,6 +70,7 @@ class Client:
 
         # Create a socket object, connecting it to the port and IP
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client_socket.settimeout(self.timeout)
         self.client_socket.connect((self.ip, self.port))
 
     # Desc: Contacts server to authenticate client, returns status of client authetnication
@@ -80,7 +82,7 @@ class Client:
         self.client_socket.send(user_to_authenticate.encode())
 
         # Wait for authentication response from server
-        response = self.client_socket.recv(1024).decode()
+        response = self.safe_recv(1024)
         components = response.split()
 
         # Process server response
@@ -109,7 +111,7 @@ class Client:
 
         self.client_socket.send(user_to_authorize.encode())
 
-        response = self.client_socket.recv(1024).decode()
+        response = self.safe_recv(1024)
 
         # Process server response
         if response == str(self.incoming_codes['user_added']):
@@ -117,7 +119,7 @@ class Client:
         elif response == str(self.incoming_codes['dup_user']):
             print("\nA user with these credentials already exists.\n")
 
-        response = self.client_socket.recv(1024).decode()
+        response = self.safe_recv(1024)
         self.s_cwd = response
         self.s_cwd_constant = response
 
@@ -153,7 +155,8 @@ class Client:
         elif command_components[0] == "rm":
             self.delete_file_subroutine(command_components[1])
         elif command_components[0] == "test":
-            analysis.set_METRIC()
+            global METRIC
+            METRIC = analysis.set_METRIC(METRIC)
         elif command_components[0] == "mkdir":
             self.make_directory_subroutine(command_components[1])
         elif command_components[0] == "rmdir":
@@ -169,8 +172,8 @@ class Client:
     def exit_subroutine(self):
         message = f"{self.outgoing_codes['exit']} {self.username}"
 
-        self.client_socket.send(message.encode())
-        response = self.client_socket.recv(1024).decode()
+        self.safe_send(message)
+        response = self.safe_recv(1024)
 
         if response == str(self.incoming_codes['disconnected']):
             self.authenticated = False
@@ -219,10 +222,10 @@ class Client:
             if METRIC:
                 sendRequest = time.perf_counter()
 
-            self.client_socket.send(message.encode())
+            self.safe_send(message)
 
             # Wait for status update of file upload
-            response = self.client_socket.recv(1024).decode()
+            response = self.safe_recv(1024)
 
             if METRIC:
                 gotRequest = time.perf_counter()
@@ -262,15 +265,13 @@ class Client:
        
 
             #get response from server
-            response = self.client_socket.recv(1024).decode()
+            response = self.safe_recv(1024)
 
             # Notify user based on the result of upload
             if response == str(self.incoming_codes['good_upload']):
-                print("\nFile uploaded to server successfully.\n")
-         
-            if METRIC:
-                analysis.log_upload_metircs(sendRequest,gotRequest,finishedUploadTime,intialUploadtime,os.path.abspath(filename))
-                
+                print("\nFile uploaded to server successfully.\n") 
+                if METRIC:
+                    analysis.log_upload_metircs(sendRequest,gotRequest,finishedUploadTime,intialUploadtime,os.path.abspath(filename))  
             else:
                 print("\nFile failed to upload to server.\n")
 
@@ -280,10 +281,10 @@ class Client:
     def sls_subroutine(self):
         # Request files in servers cwd
         message = f"{self.outgoing_codes['sls']}"
-        self.client_socket.send(message.encode())
+        self.safe_send(message)
 
         # Wait for server to fulfil request
-        response = self.client_socket.recv(1024).decode()
+        response = self.safe_recv(1024)
         print(f"\n{response}\n")
 
     # Desc: Request list of files from server / metrics
@@ -292,10 +293,10 @@ class Client:
     def dowload_file_subroutine(self, file_name):
         # Check to see if file exists on server
         message = f"{self.outgoing_codes['sls']}"
-        self.client_socket.send(message.encode())
+        self.safe_send(message)
 
         # Wait for server to fulfil request
-        response = self.client_socket.recv(1024).decode()
+        response = self.safe_recv(1024)
 
         # If file exists on server
         if file_name in response:
@@ -361,10 +362,10 @@ class Client:
 
         #send message code rm
         message = f"{self.outgoing_codes['rm']} {file_name}"
-        self.client_socket.send(message.encode())
+        self.safe_send(message)
 
         #wait for response from the server
-        response = self.client_socket.recv(1024).decode()
+        response = self.safe_recv(1024)
 
         #handlinlg the response from the server
         if response == str(self.incoming_codes['ok']):
@@ -380,10 +381,10 @@ class Client:
         print(f"\nRequested a new directory named '{folderName}' be created.\n")
 
         message = f"{self.outgoing_codes['mkdir']} {file_path}"
-        self.client_socket.send(message.encode())
+        self.safe_send(message)
 
         #wait for response from the server
-        response = self.client_socket.recv(1024).decode()
+        response = self.safe_recv(1024)
 
         if response == str(self.incoming_codes['ok']):
             print(f"The directory '{file_path}', has been succcesfully created.\n")
@@ -398,10 +399,10 @@ class Client:
         print(f"\nRequested the directory named '{folderName}' be deleted from the server.\n")
 
         message = f"{self.outgoing_codes['rmdir']} {file_path}"
-        self.client_socket.send(message.encode())
+        self.safe_send(message)
 
         #wait for response from the server
-        response = self.client_socket.recv(1024).decode()
+        response = self.safe_recv(1024)
 
         if response == str(self.incoming_codes['ok']):
             print(f"The directory '{file_path}', has been succcesfully deleted.\n")
@@ -421,10 +422,10 @@ class Client:
         print(f"\nRequest to change the server directory...'.\n")
 
         message = f"{self.outgoing_codes['cd']} {file_path}"
-        self.client_socket.send(message.encode())
+        self.safe_send(message)
 
         #wait for response from the server
-        response = self.client_socket.recv(1024).decode()
+        response = self.safe_recv(1024)
 
         #adding a random comment to force commit condition
         if response == str(self.incoming_codes['ok']):
@@ -454,3 +455,29 @@ class Client:
 
         return serverPWD
         
+    # Desc: Safe SEND and RECIEVE checks if the server is still active before sending
+    # Auth: Lukas Kelk
+    # Date: 11/23/24    
+    def safe_send(self, message: str):
+        try:
+            self.client_socket.send(message.encode())
+        except (socket.timeout,ConnectionResetError, socket.error):
+            print("\nYou have been disconnected from the server.\n")
+            self.authenticated = False
+            self.client_socket.close()
+            exit(1)
+
+    #Desc: Safe SEND and RECIEVE checks if the server is still active before sending
+    # Auth: Lukas Kelk
+    # Date: 11/23/24  
+    def safe_recv(self, buffer_size: int = 1024) -> str:
+        try:
+            response = self.client_socket.recv(buffer_size).decode()
+            if not response:  # If server sends an empty response
+                raise ConnectionResetError
+            return response
+        except (socket.timeout,ConnectionResetError, socket.error):
+            print("\nYou timmed out and have been disconnected from the server.\n")
+            self.authenticated = False
+            self.client_socket.close()
+            exit(1)

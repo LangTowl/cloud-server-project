@@ -1,6 +1,5 @@
 import os
 
-METRIC = False
 # Desc: calcaulte file size times 8 to bytes
 # Auth: Lukas Kelk
 # Date: 11/21/2024
@@ -44,13 +43,12 @@ def log_upload_metircs(send_request_time, got_request_time, finished_upload_time
     print(f"Upload Speed: {speed:.4f} Mbps\n")
 
 # Desc: set toggles metric flag on and off
-    # Auth: Lukas Kelk
-    # Date: 11/16/24
-def set_METRIC():
-    global METRIC
+# Auth: Lukas Kelk
+# Date: 11/16/24
+def set_METRIC(METRIC):
     if(METRIC):
-        METRIC = False
         print("\nThe Client will no longer give performance metrics\n")
+        return False
     else:
-        METRIC = True
         print("\nThe Client will now give performance metrics\n")
+        return True
