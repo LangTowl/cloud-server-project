@@ -38,7 +38,9 @@ class Client:
             "rm": 303,
             "mkdir": 304,
             "rmdir": 305,
-            "cd": 306
+            "cd": 306,
+            "help":307,
+            "test":308
 
         }
         self.incoming_codes = {
@@ -131,7 +133,7 @@ class Client:
     def validate_command(self, command):
         commands = command.split()
 
-        if commands[0] in self.outgoing_codes or commands[0] == "test":
+        if commands[0] in self.outgoing_codes:
             return True
         else:
             return False
@@ -165,6 +167,8 @@ class Client:
             self.change_directory_subroutine(command_components[1])
         elif command_components[0] == "s_pwd":
             self.server_pwd()    
+        elif command_components[0] == "help":
+            self.help_function_subroutine()
 
     # Desc: Exit subroutine
     # Auth: Lang Towl
@@ -481,3 +485,23 @@ class Client:
             self.authenticated = False
             self.client_socket.close()
             exit(1)
+
+    # Desc: Prints current server directory in client 
+    # Auth: Spencer T. Robinson
+    # Date: 11/23/24
+    def help_function_subroutine(self):
+
+        allowed_extensions = ('.txt', '.mp3', '.wav', '.mp4', '.mkv', '.avi', '.jpg', '.jpeg', '.png')
+
+        print("")
+        print("exit - sign the client out - e.g: exit")
+        print("ls - client side directory - e.g: ls")
+        print("sls - server side directory - eg: sls")
+        print(f"upload - upload file of {allowed_extensions} extensions - e.g: upload file.txt")
+        print("download - download any server side file - e.g: download file.txt")
+        print("rm - remove a file from the server - e.g: rm file.txt")
+        print("test - enable metric reporting - e.g: test")
+        print("mkdir - make directory in the server - e.g: mkdir test")
+        print("rmdir - remove directory from the server and files/folders in it - e.g: rmdir test")
+        print("cd - change the working directory to the specified directory - e.g: cd test")
+        print("s_pwd - print the full server side working directory - e.g: s_pwd\n")
