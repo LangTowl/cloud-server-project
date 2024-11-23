@@ -3,6 +3,7 @@
 import socket
 import os
 import time
+import shutil
 
 # Desc: Client object
 # Auth: Lang Towl
@@ -14,6 +15,7 @@ class Server:
     def __init__(self, ip = '0.0.0.0', port = 8080):
         self.ip = ip
         self.port = port
+        self.home = os.getcwd()
         self.server_socket = None
         self.active_connections = 0
         self.connected_users = []
@@ -29,6 +31,9 @@ class Server:
             "bad_upload": 204,
             "file_exists": 205,
             "file_DNE": 206,
+            "dir_AE": 207,
+            "dir_DNE": 208,
+            "dir_top": 209,
             "ok": 200
         }
         self.incoming_codes = {
@@ -40,7 +45,10 @@ class Server:
             "no_override": 204,
             "sls": 301,
             "download": 302,
-            "rm": 303
+            "rm": 303,
+            "mkdir": 304,
+            "rmdir": 305,
+            "cd": 306
         }
 
 
@@ -93,6 +101,12 @@ class Server:
                     print("Client requested fulfilled.\n")
                 elif result == self.outgoing_codes['file_DNE']:
                     print("There is no file with that path.\n")
+                elif result == self.outgoing_codes['dir_AE']:
+                    print("This directory already exists.\n")
+                elif result == self.outgoing_codes['dir_DNE']:
+                    print("That directory does not exist")
+                elif result == self.outgoing_codes['dir_top']:
+                    print("You are unable to move up a directory")
                 else:
                     break
             except Exception as error:
@@ -158,6 +172,20 @@ class Server:
 
             return self.delete_subroutine(message = message, client_socket = client_socket)
         
+        elif message[0] == str(self.incoming_codes['mkdir']):
+            print(f"Client has requested to create a new directory with the file path '{message[1]}'.\n")
+
+            return self.make_directory_subroutine(message = message, client_socket=client_socket)
+        
+        elif message[0] == str(self.incoming_codes['rmdir']):
+            print(f"Client has requested to delete a directory with the file path '{message[1]}'.\n")
+
+            return self.delete_directory_subroutine(message = message, client_socket=client_socket)
+
+        elif message[0] == str(self.incoming_codes['cd']):
+            print(f"Client has requested to change the filepath to '{message[1]}'.\n")
+
+            return self.change_directory_subroutine(message = message, client_socket=client_socket)
 
 
     # Desc: Authetnicate user subroutine
@@ -172,8 +200,10 @@ class Server:
                 self.active_connections += 1
 
                 # Send good auth code back to client
-                client_socket.send(str(self.outgoing_codes['good_auth']).encode())
+                response = f"{self.outgoing_codes['good_auth']} {self.home}"
+                client_socket.send(str(response).encode())
                 self.connected_users.append(message[1])
+
                 return self.outgoing_codes['good_auth']
             else:
                 print(f"{message[1]} already connected to network.\n")
@@ -204,10 +234,12 @@ class Server:
             return self.outgoing_codes['bad_auth']
         else:
             print(f"{message[1]} is now an authorized user.\n")
-                
+
             # Tell client they provided valid credentials and add them to the list of authorized users
             self.authenticated_users[message[1]] = message[2]
             client_socket.send(str(self.outgoing_codes['user_added']).encode())
+            message = str(os.getcwd())
+            client_socket.send(message.encode())
             return self.outgoing_codes['good_auth']
         
 
@@ -251,7 +283,7 @@ class Server:
         # Add file to list if it has valid extension
         for entry in local_files:
             # Only add files with the allowed extensions
-            if entry.endswith(allowed_extensions):
+            if entry.endswith(allowed_extensions) or (os.path.isdir(entry) and entry != "__pycache__"):
                 file_names += f"{entry}   "
 
         # Handle case when no files are on server
@@ -351,3 +383,65 @@ class Server:
             print(f"\nFile '{message[1]}' does not exist on server.\n")
             client_socket.send(str(self.outgoing_codes['file_DNE']).encode())
             return self.outgoing_codes['file_DNE']
+    
+    # Desc: Make new directory in server
+    # Auth: Spencer T. Robinson
+    # Date: 11/21/24
+    def make_directory_subroutine(self, message, client_socket):
+        print("Entered make_directory_subroutine\n")
+        print(os.getcwd())
+        path = message[1]
+        if os.path.exists(path):
+            #if the file path exists, send back 
+            print(f"Directory '{path}' already exists\n")
+            client_socket.send(str(self.outgoing_codes['dir_AE']).encode())
+            return self.outgoing_codes['dir_AE']
+        else:
+            #directory dne, make one
+            print(f"Creating directory named '{path}'\n")
+            os.mkdir(path)
+            client_socket.send(str(self.outgoing_codes['ok']).encode())
+            return self.outgoing_codes['ok']
+        
+    # Desc: Delete a directory in server
+    # Auth: Spencer T. Robinson
+    # Date: 11/21/24
+    def delete_directory_subroutine(self, message, client_socket):
+        print("Entered delete_directory_subroutine\n")
+        path = message[1]
+        if os.path.exists(path):
+            #if the file path exists, send back 
+            print(f"Deleting '{path}' directory\n")
+            shutil.rmtree(path)
+            client_socket.send(str(self.outgoing_codes['ok']).encode())
+            return self.outgoing_codes['ok']
+        else:
+            #directory dne, return
+            print(f"Directory '{path}' does not exist\n")
+            client_socket.send(str(self.outgoing_codes['dir_DNE']).encode())
+            return self.outgoing_codes['dir_DNE']
+
+    def change_directory_subroutine(self, message, client_socket):
+        print("Entered change_directory_subroutine\n")
+
+        #slightly hardcoded file path req, in order to limit cd ..
+        if(len(message[1]) < len(self.home)): 
+            print(f"Unable to move up directory\n")
+            client_socket.send(str(self.outgoing_codes['dir_top']).encode())
+            return self.outgoing_codes['dir_top']
+        elif(message[1] == ".."):
+            path = os.path.dirname(os.getcwd())
+        else:
+            path = message[1]
+        
+        if os.path.exists(path):
+            #if the file path exists, send back 
+            print(f"Change directory to '{path}'\n")
+            os.chdir(path)
+            client_socket.send(str(self.outgoing_codes['ok']).encode())
+            return self.outgoing_codes['ok']
+        else:
+            #directory dne, return
+            print(f"Directory '{path}' does not exist\n")
+            client_socket.send(str(self.outgoing_codes['dir_DNE']).encode())
+            return self.outgoing_codes['dir_DNE']

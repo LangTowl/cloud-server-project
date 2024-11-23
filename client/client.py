@@ -81,7 +81,7 @@ if __name__ == "__main__":
         if client.authenticated == False:
             break
 
-        command = input("> ")
+        command = input(f"{client.shorten_s_pwd()} > ")
 
         # Check to see if user input is a valid command
         valid_command = client.validate_command(command)
