@@ -198,8 +198,13 @@ class Client:
             # Only add files with the allowed extensions
             if entry.endswith(allowed_extensions):
                 file_names += f"{entry}   "
+    
+        if file_names == "":
+            print("\nNo files in client's CWD\n")
+        else:
+            print(f"\n{file_names}\n")
+
         
-        print(f"\n{file_names}\n")
 
     # Desc: Upload file subroutine (metrics added by LK)
     # Auth: Lang Towl / Lukas Kelk
