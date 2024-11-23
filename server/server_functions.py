@@ -203,7 +203,7 @@ class Server:
                 client_socket.send(str(self.outgoing_codes['good_auth']).encode())
                 self.connected_users.append(message[1])
 
-                message = str(os.getcwd())
+                message = str(self.home)
                 client_socket.send(message.encode())
                 return self.outgoing_codes['good_auth']
             else:

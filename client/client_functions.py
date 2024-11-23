@@ -16,6 +16,7 @@ class Client:
         self.username = username
         self.password = password
         self.s_cwd = ""
+        self.s_cwd_constant = ""
         self.authenticated = False
         self.key = None
         self.client_socket = None
@@ -91,6 +92,7 @@ class Client:
 
         response = self.client_socket.recv(1024).decode()
         self.s_cwd = response
+        self.s_cwd_constant = response
         print(self.s_cwd)
 
         return self.authenticated
@@ -113,6 +115,9 @@ class Client:
 
         response = self.client_socket.recv(1024).decode()
         self.s_cwd = response
+        self.s_cwd_constant = response
+
+
 
     # Desc: Check validity of instruction
     # Auth: Lang Towl
@@ -316,12 +321,11 @@ class Client:
     # Auth: Spencer T. Robinson
     # Date: 11/21/24
     def make_directory_subroutine(self, folderName):
-        file_path = self.s_cwd + folderName
-        print(f"\nCreating new folder file path '{file_path}'.\n")
+        file_path = self.s_cwd + '/' + folderName
+        print(f"\nRequested a new directory named '{folderName}' be created.\n")
 
         message = f"{self.outgoing_codes['mkdir']} {file_path}"
         self.client_socket.send(message.encode())
-        print(f"Sent '{folderName}' to the server.\n")
 
         #wait for response from the server
         response = self.client_socket.recv(1024).decode()
@@ -329,14 +333,14 @@ class Client:
         if response == str(self.incoming_codes['ok']):
             print(f"The directory '{file_path}', has been succcesfully created.\n")
         elif response == str(self.incoming_codes['dir_AE']):
-            print(f"The directory '{file_path}', already exists.\n")
+            print(f"The directory '{folderName}', already exists.\n")
 
     # Desc: Delete a directory in server
     # Auth: Spencer T. Robinson
     # Date: 11/21/24
     def delete_directory_subroutine(self, folderName):
-        file_path = self.s_cwd + folderName
-        print(f"Requested '{file_path}' be deleted from the server.\n")
+        file_path = self.s_cwd + '/' + folderName
+        print(f"\nRequested the directory named '{folderName}' be deleted from the server.\n")
 
         message = f"{self.outgoing_codes['rmdir']} {file_path}"
         self.client_socket.send(message.encode())
@@ -347,16 +351,19 @@ class Client:
         if response == str(self.incoming_codes['ok']):
             print(f"The directory '{file_path}', has been succcesfully deleted.\n")
         elif response == str(self.incoming_codes['dir_DNE']):
-            print(f"The directory '{file_path}', does not exist.\n")
+            print(f"The directory '{folderName}', does not exist.\n")
 
+    # Desc: Change a directory in server
+    # Auth: Spencer T. Robinson
+    # Date: 11/21/24
     def change_directory_subroutine(self, folderName):
         
         if(folderName == ".."):
             file_path = os.path.dirname(self.s_cwd)
         else:
-            file_path = self.s_cwd + folderName
+            file_path = self.s_cwd + '/' + folderName
         
-        print(f"Request to change the server directory to '{file_path}'.\n")
+        print(f"\nRequest to change the server directory...'.\n")
 
         message = f"{self.outgoing_codes['cd']} {file_path}"
         self.client_socket.send(message.encode())
@@ -366,12 +373,29 @@ class Client:
 
         #adding a random comment to force commit condition
         if response == str(self.incoming_codes['ok']):
-            print(f"The directory has been succcesfully changed to '{file_path}'.\n")
+            print(f"The directory has been succcesfully changed.\n")
             self.s_cwd = file_path
         elif response == str(self.incoming_codes['dir_DNE']):
-            print(f"The directory '{file_path}', does not exist.\n")
+            print(f"The directory '{folderName}', does not exist.\n")
         elif response == str(self.incoming_codes['dir_top']):
-            print(f"Unable to move up directory.\n")
+            print(f"Unable to move up this directory.\n")
 
+    # Desc: Prints current server directory in client 
+    # Auth: Spencer T. Robinson
+    # Date: 11/21/24
     def server_pwd(self):
-        print(f"The current server working directory is '{self.s_cwd}'.\n")
+        print(f"The current working directory of the server is '{self.s_cwd}'.\n")
+
+    # Desc: Shorten the server directory to print on cli
+    # Auth: Spencer T. Robinson
+    # Date: 11/22/24
+    def shorten_s_pwd(self):
+        parent_dir = (os.path.dirname(self.s_cwd_constant))
+        serverPWD = self.username + ": "
+        startPos = len(str(parent_dir))+1
+        while(startPos < len(self.s_cwd)):
+            serverPWD += self.s_cwd[startPos]
+            startPos += 1
+
+        return serverPWD
+        
