@@ -138,9 +138,9 @@ class Client:
         else:
             return False
 
-    # Desc: Outgoing command handler
-    # Auth: Lang Towl
-    # Date: 11/4/24
+    # Desc: Outgoing command handler / bug fixes
+    # Auth: Lang Towl / Lukas Kelk
+    # Date: 11/4/24 \ 11/24/2024
     def direct_outgoing_commands(self, command):
         command_components = command.split()
 
@@ -172,7 +172,7 @@ class Client:
             elif command_components[0] == "help":
                 self.help_function_subroutine()
             else:
-                print("\nInvalid Command Syntax please use: Command path/file\n")
+                print("\nInvalid Command Syntax please use: |Command path/file| or type help to see more\n")
 
     # Desc: Exit subroutine
     # Auth: Lang Towl
