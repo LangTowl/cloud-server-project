@@ -5,7 +5,7 @@ import getpass
 
 if __name__ == "__main__":
     # Determine user status
-    print("Client session started...\n\nDo you have an account? (y/n)")
+    print("Client session started...\n\nDo you have an account? (y/n)\n")
 
     while True:
         account_status = input("> ")
