@@ -97,6 +97,8 @@ class Server:
                     break
                 elif result == self.outgoing_codes['good_upload']:
                     print("File successfully uploaded.\n")
+                elif result == self.outgoing_codes['bad_upload']:
+                    print("File uploaded process terminated.\n")
                 elif result == self.outgoing_codes['ok']:
                     print("Client requested fulfilled.\n")
                 elif result == self.outgoing_codes['file_DNE']:
@@ -315,9 +317,9 @@ class Server:
 
                 if response == str(self.incoming_codes["override"]):
                     print("Permission to override granted.\n")
-                else:
+                elif response == str(self.incoming_codes["no_override"]):
                     print("Permission to override denied.\n")
-                    client_socket.send(str(self.outgoing_codes['bad_upload']).encode()) 
+                    # client_socket.send(str(self.outgoing_codes['bad_upload']).encode()) 
                     return self.outgoing_codes['bad_upload']
             else:
                 client_socket.send(str(self.outgoing_codes['good_upload']).encode())    
@@ -343,7 +345,8 @@ class Server:
             client_socket.send(str(self.outgoing_codes['good_upload']).encode())
             return self.outgoing_codes['good_upload']
         finally:
-            file.close()
+            if 'file' in locals(): 
+                file.close()
     
 
 
