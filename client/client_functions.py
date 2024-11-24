@@ -138,37 +138,41 @@ class Client:
         else:
             return False
 
-    # Desc: Outgoing command handler
-    # Auth: Lang Towl
-    # Date: 11/4/24
+    # Desc: Outgoing command handler / bug fixes
+    # Auth: Lang Towl / Lukas Kelk
+    # Date: 11/4/24 \ 11/24/2024
     def direct_outgoing_commands(self, command):
         command_components = command.split()
 
-        if command_components[0] == "exit":
-            self.exit_subroutine()
-        elif command_components[0] == "ls":
-            self.ls_subroutine()
-        elif command_components[0] == "upload":
-            self.upload_file_subroutine(command_components[1])
-        elif command_components[0] == "sls":
-            self.sls_subroutine()
-        elif command_components[0] == "download":
-            self.dowload_file_subroutine(command_components[1])
-        elif command_components[0] == "rm":
-            self.delete_file_subroutine(command_components[1])
-        elif command_components[0] == "test":
-            global METRIC
-            METRIC = analysis.set_METRIC(METRIC)
-        elif command_components[0] == "mkdir":
-            self.make_directory_subroutine(command_components[1])
-        elif command_components[0] == "rmdir":
-            self.delete_directory_subroutine(command_components[1])
-        elif command_components[0] == "cd":
-            self.change_directory_subroutine(command_components[1])
-        elif command_components[0] == "s_pwd":
-            self.server_pwd()    
-        elif command_components[0] == "help":
-            self.help_function_subroutine()
+        if len(command_components) > 1:
+            if command_components[0] == "upload":
+                self.upload_file_subroutine(command_components[1])
+            elif command_components[0] == "download":
+                self.dowload_file_subroutine(command_components[1])
+            elif command_components[0] == "rm":
+                self.delete_file_subroutine(command_components[1])
+            elif command_components[0] == "mkdir":
+                self.make_directory_subroutine(command_components[1])
+            elif command_components[0] == "rmdir":
+                self.delete_directory_subroutine(command_components[1])
+            elif command_components[0] == "cd":
+                self.change_directory_subroutine(command_components[1])
+        else:
+            if command_components[0] == "exit":
+                self.exit_subroutine()
+            elif command_components[0] == "ls":
+                self.ls_subroutine()
+            elif command_components[0] == "sls":
+                self.sls_subroutine()
+            elif command_components[0] == "test":
+                global METRIC
+                METRIC = analysis.set_METRIC(METRIC)
+            elif command_components[0] == "s_pwd":
+                self.server_pwd()    
+            elif command_components[0] == "help":
+                self.help_function_subroutine()
+            else:
+                print("\nInvalid Command Syntax please use: |Command path/file| or type help to see more\n")
 
     # Desc: Exit subroutine
     # Auth: Lang Towl
@@ -364,12 +368,17 @@ class Client:
         else:
             print("\nFile does not exist on server.\n")
     
-    # Desc: Delete file from server
+    # Desc: Delete file from server / bug fix
     # Auth: Lukas Kelk
-    # Date: 11/16/24
+    # Date: 11/16/24 / 11/24/2024
     def delete_file_subroutine(self, file_name):
         
         print(f"\nRequesting to delete '{file_name}' from the server...\n")
+
+        #check if the file has an extension if not
+        if '.' not in file_name:
+            print(f"The specified file name '{file_name}' does not have an extension. Please provide a valid file name with an extension (e.g., .txt).\n")
+            return
 
         #send message code rm
         message = f"{self.outgoing_codes['rm']} {file_name}"
