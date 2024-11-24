@@ -428,7 +428,7 @@ class Client:
         else:
             file_path = self.s_cwd + '/' + folderName
         
-        print(f"\nRequest to change the server directory...'.\n")
+        print(f"\nRequest to change the server directory...\n")
 
         message = f"{self.outgoing_codes['cd']} {file_path}"
         self.safe_send(message)
