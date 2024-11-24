@@ -33,7 +33,7 @@ if __name__ == "__main__":
         if client.authenticate_client() == True:
             break
 
-        print("Do you want to try again, or make a new acount? (try/new)")
+        print("Do you want to try again, or make a new acount? (try/new)\n")
         failed = input("> ")
 
         if failed.lower() == "new":
@@ -92,11 +92,11 @@ if __name__ == "__main__":
 
         # Else, prompt user to retry 
         else:
-            try_again = input("Do you want to try again? (y/n): ")
-
+            try_again = input("\nUnrecognized command. Do you want to try again? (y/n)\n\n> ")
+            print("")
             if try_again.lower() == 'y':
                 continue
             elif try_again.lower() == 'n':
-                break
+                client.exit_subroutine()
             else:
                 print("Unrecognized command entered.\n")
