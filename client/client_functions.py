@@ -362,12 +362,17 @@ class Client:
         else:
             print("\nFile does not exist on server.\n")
     
-    # Desc: Delete file from server
+    # Desc: Delete file from server / bug fix
     # Auth: Lukas Kelk
-    # Date: 11/16/24
+    # Date: 11/16/24 / 11/24/2024
     def delete_file_subroutine(self, file_name):
         
         print(f"\nRequesting to delete '{file_name}' from the server...\n")
+
+        #check if the file has an extension if not
+        if '.' not in file_name:
+            print(f"The specified file name '{file_name}' does not have an extension. Please provide a valid file name with an extension (e.g., .txt).\n")
+            return
 
         #send message code rm
         message = f"{self.outgoing_codes['rm']} {file_name}"
