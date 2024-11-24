@@ -93,8 +93,8 @@ if __name__ == "__main__":
         # Else, prompt user to retry 
         else:
             try_again = input("\nUnrecognized command. Do you want to try again? (y/n)\n\n> ")
-            print("")
             if try_again.lower() == 'y':
+                print("")
                 continue
             elif try_again.lower() == 'n':
                 client.exit_subroutine()
