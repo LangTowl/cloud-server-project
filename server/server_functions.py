@@ -104,7 +104,7 @@ class Server:
                 elif result == self.outgoing_codes['dir_AE']:
                     print("This directory already exists.\n")
                 elif result == self.outgoing_codes['dir_DNE']:
-                    print("That directory does not exist")
+                    print("That directory does not exist\n")
                 elif result == self.outgoing_codes['dir_top']:
                     print("You are unable to move up a directory")
                 else:
