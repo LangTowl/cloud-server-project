@@ -245,7 +245,9 @@ class Client:
 
                 # Escape function if they dont want to override
                 if override.lower() == "n":
-                    #TODO: SEND CODE BACK TO SERVER TELLING THEM NOT TO OVERRIDE
+                    print("")
+                
+                    self.client_socket.send(str(self.outgoing_codes["no_override"]).encode())
                     return
                 else:
                     self.client_socket.send(str(self.outgoing_codes["override"]).encode())
@@ -428,7 +430,7 @@ class Client:
         else:
             file_path = self.s_cwd + '/' + folderName
         
-        print(f"\nRequest to change the server directory...'.\n")
+        print(f"\nRequest to change the server directory...\n")
 
         message = f"{self.outgoing_codes['cd']} {file_path}"
         self.safe_send(message)
