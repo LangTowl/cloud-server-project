@@ -5,7 +5,7 @@ import getpass
 
 if __name__ == "__main__":
     # Determine user status
-    print("Client session started...\n\nDo you have an account? (y/n)")
+    print("Client session started...\n\nDo you have an account? (y/n)\n")
 
     while True:
         account_status = input("> ")
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         if client.authenticate_client() == True:
             break
 
-        print("Do you want to try again, or make a new acount? (try/new)")
+        print("Do you want to try again, or make a new acount? (try/new)\n")
         failed = input("> ")
 
         if failed.lower() == "new":
@@ -92,11 +92,11 @@ if __name__ == "__main__":
 
         # Else, prompt user to retry 
         else:
-            try_again = input("Do you want to try again? (y/n): ")
-
+            try_again = input("\nUnrecognized command. Do you want to try again? (y/n)\n\n> ")
             if try_again.lower() == 'y':
+                print("")
                 continue
             elif try_again.lower() == 'n':
-                break
+                client.exit_subroutine()
             else:
                 print("Unrecognized command entered.\n")

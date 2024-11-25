@@ -13,7 +13,7 @@ class Client:
     # Desc: Client object initializer
     # Auth: Lang Towl
     # Date: 11/1/24
-    def __init__(self, ip = '127.0.0.1', port = 8080, username = None, password = None, timeout = 5):
+    def __init__(self, ip = '35.192.130.55', port = 8080, username = None, password = None, timeout = 5):
         self.ip = ip
         self.port = port
         self.username = username
@@ -138,37 +138,41 @@ class Client:
         else:
             return False
 
-    # Desc: Outgoing command handler
-    # Auth: Lang Towl
-    # Date: 11/4/24
+    # Desc: Outgoing command handler / bug fixes
+    # Auth: Lang Towl / Lukas Kelk
+    # Date: 11/4/24 \ 11/24/2024
     def direct_outgoing_commands(self, command):
         command_components = command.split()
 
-        if command_components[0] == "exit":
-            self.exit_subroutine()
-        elif command_components[0] == "ls":
-            self.ls_subroutine()
-        elif command_components[0] == "upload":
-            self.upload_file_subroutine(command_components[1])
-        elif command_components[0] == "sls":
-            self.sls_subroutine()
-        elif command_components[0] == "download":
-            self.dowload_file_subroutine(command_components[1])
-        elif command_components[0] == "rm":
-            self.delete_file_subroutine(command_components[1])
-        elif command_components[0] == "test":
-            global METRIC
-            METRIC = analysis.set_METRIC(METRIC)
-        elif command_components[0] == "mkdir":
-            self.make_directory_subroutine(command_components[1])
-        elif command_components[0] == "rmdir":
-            self.delete_directory_subroutine(command_components[1])
-        elif command_components[0] == "cd":
-            self.change_directory_subroutine(command_components[1])
-        elif command_components[0] == "s_pwd":
-            self.server_pwd()    
-        elif command_components[0] == "help":
-            self.help_function_subroutine()
+        if len(command_components) > 1:
+            if command_components[0] == "upload":
+                self.upload_file_subroutine(command_components[1])
+            elif command_components[0] == "download":
+                self.dowload_file_subroutine(command_components[1])
+            elif command_components[0] == "rm":
+                self.delete_file_subroutine(command_components[1])
+            elif command_components[0] == "mkdir":
+                self.make_directory_subroutine(command_components[1])
+            elif command_components[0] == "rmdir":
+                self.delete_directory_subroutine(command_components[1])
+            elif command_components[0] == "cd":
+                self.change_directory_subroutine(command_components[1])
+        else:
+            if command_components[0] == "exit":
+                self.exit_subroutine()
+            elif command_components[0] == "ls":
+                self.ls_subroutine()
+            elif command_components[0] == "sls":
+                self.sls_subroutine()
+            elif command_components[0] == "test":
+                global METRIC
+                METRIC = analysis.set_METRIC(METRIC)
+            elif command_components[0] == "s_pwd":
+                self.server_pwd()    
+            elif command_components[0] == "help":
+                self.help_function_subroutine()
+            else:
+                print("\nInvalid Command Syntax please use: |Command path/file| or type help to see more\n")
 
     # Desc: Exit subroutine
     # Auth: Lang Towl
@@ -245,7 +249,9 @@ class Client:
 
                 # Escape function if they dont want to override
                 if override.lower() == "n":
-                    #TODO: SEND CODE BACK TO SERVER TELLING THEM NOT TO OVERRIDE
+                    print("")
+                
+                    self.client_socket.send(str(self.outgoing_codes["no_override"]).encode())
                     return
                 else:
                     self.client_socket.send(str(self.outgoing_codes["override"]).encode())
@@ -300,74 +306,67 @@ class Client:
     # Auth: Lang Towl / Lukas Kelk
     # Date: 11/4/24 / 11/20/24
     def dowload_file_subroutine(self, file_name):
-        # Check to see if file exists on server
-        message = f"{self.outgoing_codes['sls']}"
-        self.safe_send(message)
-
-        # Wait for server to fulfil request
+        # Request files in server's cwd
+        self.safe_send(f"{self.outgoing_codes['sls']}")
         response = self.safe_recv(1024)
 
         # If file exists on server
         if file_name in response:
             try:
-                # Make new file in clients CWD
                 file_path = os.path.join(os.getcwd(), file_name)
+                self.safe_send(f"{self.outgoing_codes['download']} {file_name}")
 
-                # Request download initiation
-                request_dowload = f"{self.outgoing_codes['download']} {file_name}"
                 if METRIC:
                     sendRequest = time.perf_counter()
-                self.client_socket.send(request_dowload.encode())
+                    intialDownloadtime = time.perf_counter()
 
-                if(METRIC):
-                    #for performance metrics
-                    intialDownloadtime = time.perf_counter()    
-
-                # Loop to copy contents of incoming chunks to file, open file in write binary mode
                 with open(file_path, "wb") as file:
                     print("\nDownloading file...\n")
-
                     firstTime = True
 
                     while True:
+                        # Receive binary data
+                        data = self.safe_recv(1024, binary=True)
 
-                        # Recieve data from client in chunks
-                        data = self.client_socket.recv(1024)
+                        if firstTime and METRIC:
+                            gotRequest = time.perf_counter()
+                            firstTime = False
 
-                        if firstTime:
-                            if METRIC:
-                                firstTime = False
-                                gotRequest = time.perf_counter()
-
-                        # Escape sequence to run once end of file is reached
+                        # End of file detection
                         if b"<EOF>" in data:
-
                             if METRIC:
-                                #record finshed upload time
                                 finishedDownloadTime = time.perf_counter()
-
                             file.write(data.replace(b"<EOF>", b""))
-                            print(f"Finished recieving file '{file_name}'.\n")
+                            print(f"Finished receiving file '{file_name}'.\n")
                             break
-    
-                        # Write data to open file
+
                         file.write(data)
+            except Exception as e:
+                print(f"Error during download: {e}")
             finally:
-                file.close()
-
                 if METRIC:
-                    analysis.log_download_metircs(sendRequest,gotRequest,finishedDownloadTime,intialDownloadtime,os.path.abspath(file_name))
-
-        # If file doesn't exists on server
+                    analysis.log_download_metircs(
+                        sendRequest,
+                        gotRequest or time.perf_counter(),  # Default if uninitialized
+                        finishedDownloadTime,
+                        intialDownloadtime,
+                        os.path.abspath(file_name)
+                )
         else:
             print("\nFile does not exist on server.\n")
+
     
-    # Desc: Delete file from server
+    # Desc: Delete file from server / bug fix
     # Auth: Lukas Kelk
-    # Date: 11/16/24
+    # Date: 11/16/24 / 11/24/2024
     def delete_file_subroutine(self, file_name):
         
         print(f"\nRequesting to delete '{file_name}' from the server...\n")
+
+        #check if the file has an extension if not
+        if '.' not in file_name:
+            print(f"The specified file name '{file_name}' does not have an extension. Please provide a valid file name with an extension (e.g., .txt).\n")
+            return
 
         #send message code rm
         message = f"{self.outgoing_codes['rm']} {file_name}"
@@ -428,7 +427,7 @@ class Client:
         else:
             file_path = self.s_cwd + '/' + folderName
         
-        print(f"\nRequest to change the server directory...'.\n")
+        print(f"\nRequest to change the server directory...\n")
 
         message = f"{self.outgoing_codes['cd']} {file_path}"
         self.safe_send(message)
@@ -479,17 +478,18 @@ class Client:
     #Desc: Safe SEND and RECIEVE checks if the server is still active before sending
     # Auth: Lukas Kelk
     # Date: 11/23/24  
-    def safe_recv(self, buffer_size: int = 1024) -> str:
+    def safe_recv(self, buffer_size: int = 1024, binary=False) -> str:
         try:
-            response = self.client_socket.recv(buffer_size).decode()
-            if not response:  # If server sends an empty response
+            response = self.client_socket.recv(buffer_size)
+            if not response:
                 raise ConnectionResetError
-            return response
-        except (socket.timeout,ConnectionResetError, socket.error):
-            print("\nYou timmed out and have been disconnected from the server.\n")
+            return response if binary else response.decode()
+        except (socket.timeout, ConnectionResetError, socket.error):
+            print("\nYou timed out and have been disconnected from the server.\n")
             self.authenticated = False
             self.client_socket.close()
             exit(1)
+
 
     # Desc: Prints current server directory in client 
     # Auth: Spencer T. Robinson
