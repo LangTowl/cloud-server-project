@@ -338,7 +338,7 @@ class Client:
                     while True:
 
                         # Recieve data from client in chunks
-                        data = self.client_socket.recv(1024)
+                        data = self.safe_recv(1024)
 
                         if firstTime:
                             if METRIC:
