@@ -370,7 +370,7 @@ class Server:
     # Date: 11/16/24
     def delete_subroutine(self, message, client_socket):
 
-        path = os.path.join(os.getcwd(), message[1])
+        path = os.path.join(message[2], message[1])
 
         if os.path.exists(path):
             #if the file path exists remove, 
@@ -409,7 +409,7 @@ class Server:
     def delete_directory_subroutine(self, message, client_socket):
         print("Entered delete_directory_subroutine\n")
         path = message[1]
-        if os.path.exists(path):
+        if os.path.exists(path) and not path.endswith("server"):
             #if the file path exists, send back 
             print(f"Deleting '{path}' directory\n")
             shutil.rmtree(path)

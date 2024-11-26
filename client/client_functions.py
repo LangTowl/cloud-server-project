@@ -369,7 +369,7 @@ class Client:
             return
 
         #send message code rm
-        message = f"{self.outgoing_codes['rm']} {file_name}"
+        message = f"{self.outgoing_codes['rm']} {file_name} {self.s_cwd}"
         self.safe_send(message)
 
         #wait for response from the server
@@ -385,7 +385,7 @@ class Client:
     # Auth: Spencer T. Robinson
     # Date: 11/21/24
     def make_directory_subroutine(self, folderName):
-        file_path = self.s_cwd + '/' + folderName
+        file_path = f"{self.s_cwd}/{folderName}"
         print(f"\nRequested a new directory named '{folderName}' be created.\n")
 
         message = f"{self.outgoing_codes['mkdir']} {file_path}"
@@ -403,7 +403,7 @@ class Client:
     # Auth: Spencer T. Robinson
     # Date: 11/21/24
     def delete_directory_subroutine(self, folderName):
-        file_path = self.s_cwd + '/' + folderName
+        file_path = f"{self.s_cwd}/{folderName}"
         print(f"\nRequested the directory named '{folderName}' be deleted from the server.\n")
 
         message = f"{self.outgoing_codes['rmdir']} {file_path}"
