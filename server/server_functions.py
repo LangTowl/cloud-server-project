@@ -12,7 +12,7 @@ class Server:
     # Desc: Server object initializer
     # Auth: Lang Towl
     # Date: 11/1/24
-    def __init__(self, ip = '10.128.0.3', port = 8080):
+    def __init__(self, ip = '0.0.0.0', port = 8080):
         self.ip = ip
         self.port = port
         self.home = os.getcwd()
@@ -155,7 +155,7 @@ class Server:
         elif message[0] == str(self.incoming_codes['upload']):
             print(f'Receiving file `{message[1]}` from client...\n')
 
-            return self.receive_file_subroutine(message[1], client_socket)
+            return self.receive_file_subroutine(message[1], client_socket, message[2])
     
         # Client wants to know files in servers cws
         elif message[0] == str(self.incoming_codes['sls']):
@@ -167,7 +167,7 @@ class Server:
         elif message[0] == str(self.incoming_codes['download']):
             print(f"Client has requested to download '{message[1]}'.\n\nSending...\n")
 
-            return self.download_subroutine(message = message, client_socket = client_socket)
+            return self.download_subroutine(message = message[1], client_socket = client_socket)
         
         elif message[0] == str(self.incoming_codes['rm']):
             print(f"Client has requested to delete '{message[1]}'.\n")
@@ -272,11 +272,8 @@ class Server:
     # Auth: Lang Towl
     # Date: 11/11/24
     def sls_subroutine(self, message, client_socket):
-        # Fetch current working directory
-        cwd = os.getcwd()
-
         # Aggregate files in cwd
-        local_files = os.listdir(cwd)
+        local_files = os.listdir(message[1])
         file_names = ""
 
         # Define the allowed extensions
@@ -302,10 +299,10 @@ class Server:
     # Desc: Receives a file from the client and writes it to the server's directory
     # Auth: Lang Towl
     # Date: 11/4/24
-    def receive_file_subroutine(self, file_name, client_socket):
+    def receive_file_subroutine(self, file_name, client_socket, path):
         try:
             # Create an open a file in write binary mode
-            file_path = os.path.join(os.getcwd(), file_name)
+            file_path = os.path.join(path, file_name)
 
             #  Code to run if file alerady exists on server
             if os.path.exists(file_path):
@@ -355,7 +352,7 @@ class Server:
     # Date: 11/11/24
     def download_subroutine(self, message, client_socket):
         # Open local file in read binary mode
-        with open(message[1], "rb") as file:
+        with open(message, "rb") as file:
             # Break file into binary chunks
             chunk = file.read(1024)
 
@@ -373,7 +370,7 @@ class Server:
     # Date: 11/16/24
     def delete_subroutine(self, message, client_socket):
 
-        path = os.path.join(os.getcwd(), message[1])
+        path = os.path.join(message[2], message[1])
 
         if os.path.exists(path):
             #if the file path exists remove, 
@@ -412,7 +409,7 @@ class Server:
     def delete_directory_subroutine(self, message, client_socket):
         print("Entered delete_directory_subroutine\n")
         path = message[1]
-        if os.path.exists(path):
+        if os.path.exists(path) and not path.endswith("server"):
             #if the file path exists, send back 
             print(f"Deleting '{path}' directory\n")
             shutil.rmtree(path)
@@ -423,28 +420,10 @@ class Server:
             print(f"Directory '{path}' does not exist\n")
             client_socket.send(str(self.outgoing_codes['dir_DNE']).encode())
             return self.outgoing_codes['dir_DNE']
-
-    def change_directory_subroutine(self, message, client_socket):
-        print("Entered change_directory_subroutine\n")
-
-        #slightly hardcoded file path req, in order to limit cd ..
-        if(len(message[1]) < len(self.home)): 
-            print(f"Unable to move up directory\n")
-            client_socket.send(str(self.outgoing_codes['dir_top']).encode())
-            return self.outgoing_codes['dir_top']
-        elif(message[1] == ".."):
-            path = os.path.dirname(os.getcwd())
-        else:
-            path = message[1]
         
-        if os.path.exists(path):
-            #if the file path exists, send back 
-            print(f"Change directory to '{path}'\n")
-            os.chdir(path)
-            client_socket.send(str(self.outgoing_codes['ok']).encode())
-            return self.outgoing_codes['ok']
-        else:
-            #directory dne, return
-            print(f"Directory '{path}' does not exist\n")
-            client_socket.send(str(self.outgoing_codes['dir_DNE']).encode())
-            return self.outgoing_codes['dir_DNE']
+    # Desc: Change directory in server
+    # Auth: Spencer T. Robinson
+    # Date: 11/21/24
+    def change_directory_subroutine(self, message, client_socket):
+        print("Subroutine deprecated\n")
+        return self.outgoing_codes['ok']
