@@ -12,7 +12,7 @@ class Server:
     # Desc: Server object initializer
     # Auth: Lang Towl
     # Date: 11/1/24
-    def __init__(self, ip = '10.128.0.3', port = 8080):
+    def __init__(self, ip = '0.0.0.0', port = 8080):
         self.ip = ip
         self.port = port
         self.home = os.getcwd()
@@ -272,11 +272,8 @@ class Server:
     # Auth: Lang Towl
     # Date: 11/11/24
     def sls_subroutine(self, message, client_socket):
-        # Fetch current working directory
-        cwd = os.getcwd()
-
         # Aggregate files in cwd
-        local_files = os.listdir(cwd)
+        local_files = os.listdir(message[1])
         file_names = ""
 
         # Define the allowed extensions
@@ -423,28 +420,10 @@ class Server:
             print(f"Directory '{path}' does not exist\n")
             client_socket.send(str(self.outgoing_codes['dir_DNE']).encode())
             return self.outgoing_codes['dir_DNE']
-
-    def change_directory_subroutine(self, message, client_socket):
-        print("Entered change_directory_subroutine\n")
-
-        #slightly hardcoded file path req, in order to limit cd ..
-        if(len(message[1]) < len(self.home)): 
-            print(f"Unable to move up directory\n")
-            client_socket.send(str(self.outgoing_codes['dir_top']).encode())
-            return self.outgoing_codes['dir_top']
-        elif(message[1] == ".."):
-            path = os.path.dirname(os.getcwd())
-        else:
-            path = message[1]
         
-        if os.path.exists(path):
-            #if the file path exists, send back 
-            print(f"Change directory to '{path}'\n")
-            os.chdir(path)
-            client_socket.send(str(self.outgoing_codes['ok']).encode())
-            return self.outgoing_codes['ok']
-        else:
-            #directory dne, return
-            print(f"Directory '{path}' does not exist\n")
-            client_socket.send(str(self.outgoing_codes['dir_DNE']).encode())
-            return self.outgoing_codes['dir_DNE']
+    # Desc: Change directory in server
+    # Auth: Spencer T. Robinson
+    # Date: 11/21/24
+    def change_directory_subroutine(self, message, client_socket):
+        print("Subroutine deprecated\n")
+        return self.outgoing_codes['ok']

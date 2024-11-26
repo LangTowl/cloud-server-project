@@ -13,7 +13,7 @@ class Client:
     # Desc: Client object initializer
     # Auth: Lang Towl
     # Date: 11/1/24
-    def __init__(self, ip = '35.192.130.55', port = 8080, username = None, password = None, timeout = 5):
+    def __init__(self, ip = '127.0.0.1', port = 8080, username = None, password = None, timeout = 5):
         self.ip = ip
         self.port = port
         self.username = username
@@ -106,7 +106,7 @@ class Client:
         return self.authenticated
 
     # Desc: Contacts server to authenticate client
-    # Auth: Lang Towl
+    # Auth: Lang Towl / Spencer Robinson
     # Date: 11/1/24
     def athorize_new_client(self):
         user_to_authorize = f"{self.outgoing_codes['auth_new']} {self.username} {self.password}"
@@ -230,7 +230,7 @@ class Client:
             print(f"\nPreparing to upload '{filename}'...")
 
             # Alert server to incoming file
-            message = f"{self.outgoing_codes['upload']} {filename}"
+            message = f"{self.outgoing_codes['upload']} {filename} {self.s_cwd}"
 
             if METRIC:
                 sendRequest = time.perf_counter()
@@ -295,7 +295,7 @@ class Client:
     # Date: 11/4/24
     def sls_subroutine(self):
         # Request files in servers cwd
-        message = f"{self.outgoing_codes['sls']}"
+        message = f"{self.outgoing_codes['sls']} {self.s_cwd}"
         self.safe_send(message)
 
         # Wait for server to fulfil request
@@ -418,31 +418,33 @@ class Client:
             print(f"The directory '{folderName}', does not exist.\n")
 
     # Desc: Change a directory in server
-    # Auth: Spencer T. Robinson
+    # Auth: Spencer T. Robinson / Lang Towl
     # Date: 11/21/24
     def change_directory_subroutine(self, folderName):
-        
-        if(folderName == ".."):
-            file_path = os.path.dirname(self.s_cwd)
-        else:
-            file_path = self.s_cwd + '/' + folderName
-        
-        print(f"\nRequest to change the server directory...\n")
 
-        message = f"{self.outgoing_codes['cd']} {file_path}"
+        if folderName == "..":
+            if not self.s_cwd.endswith("server"):
+                self.s_cwd, _, _ = self.s_cwd.rpartition("/")
+                print("\nMoving up one directory...\n")
+                return
+            else:
+                print("\nTop level directory reached.\n")
+                return 
+
+        # Request files in servers cwd
+        message = f"{self.outgoing_codes['sls']} {self.s_cwd}"
         self.safe_send(message)
 
-        #wait for response from the server
+        # Wait for server to fulfil request
         response = self.safe_recv(1024)
 
-        #adding a random comment to force commit condition
-        if response == str(self.incoming_codes['ok']):
+        print(f"\nRequest to change the server directory...\n")
+
+        if folderName in response.split():
+            self.s_cwd += f"/{folderName}"
             print(f"The directory has been succcesfully changed.\n")
-            self.s_cwd = file_path
-        elif response == str(self.incoming_codes['dir_DNE']):
+        else:
             print(f"The directory '{folderName}', does not exist.\n")
-        elif response == str(self.incoming_codes['dir_top']):
-            print(f"Unable to move up this directory.\n")
 
     # Desc: Prints current server directory in client 
     # Auth: Spencer T. Robinson
