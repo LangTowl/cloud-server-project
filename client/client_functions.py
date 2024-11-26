@@ -307,20 +307,20 @@ class Client:
     # Date: 11/4/24 / 11/20/24
     def dowload_file_subroutine(self, file_name):
         # Request files in server's cwd
-        self.safe_send(f"{self.outgoing_codes['sls']}")
+        self.safe_send(f"{self.outgoing_codes['sls']} {self.s_cwd}")
         response = self.safe_recv(1024)
 
         # If file exists on server
         if file_name in response:
             try:
-                file_path = os.path.join(os.getcwd(), file_name)
-                self.safe_send(f"{self.outgoing_codes['download']} {file_name}")
+                file_path = f"{self.s_cwd}/{file_name}"
+                self.safe_send(f"{self.outgoing_codes['download']} {file_path}")
 
                 if METRIC:
                     sendRequest = time.perf_counter()
                     intialDownloadtime = time.perf_counter()
 
-                with open(file_path, "wb") as file:
+                with open(os.path.join(os.getcwd(), file_name), "wb") as file:
                     print("\nDownloading file...\n")
                     firstTime = True
 

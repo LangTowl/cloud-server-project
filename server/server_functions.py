@@ -155,7 +155,7 @@ class Server:
         elif message[0] == str(self.incoming_codes['upload']):
             print(f'Receiving file `{message[1]}` from client...\n')
 
-            return self.receive_file_subroutine(message[1], client_socket)
+            return self.receive_file_subroutine(message[1], client_socket, message[2])
     
         # Client wants to know files in servers cws
         elif message[0] == str(self.incoming_codes['sls']):
@@ -167,7 +167,7 @@ class Server:
         elif message[0] == str(self.incoming_codes['download']):
             print(f"Client has requested to download '{message[1]}'.\n\nSending...\n")
 
-            return self.download_subroutine(message = message, client_socket = client_socket)
+            return self.download_subroutine(message = message[1], client_socket = client_socket)
         
         elif message[0] == str(self.incoming_codes['rm']):
             print(f"Client has requested to delete '{message[1]}'.\n")
@@ -299,10 +299,10 @@ class Server:
     # Desc: Receives a file from the client and writes it to the server's directory
     # Auth: Lang Towl
     # Date: 11/4/24
-    def receive_file_subroutine(self, file_name, client_socket):
+    def receive_file_subroutine(self, file_name, client_socket, path):
         try:
             # Create an open a file in write binary mode
-            file_path = os.path.join(os.getcwd(), file_name)
+            file_path = os.path.join(path, file_name)
 
             #  Code to run if file alerady exists on server
             if os.path.exists(file_path):
@@ -352,7 +352,7 @@ class Server:
     # Date: 11/11/24
     def download_subroutine(self, message, client_socket):
         # Open local file in read binary mode
-        with open(message[1], "rb") as file:
+        with open(message, "rb") as file:
             # Break file into binary chunks
             chunk = file.read(1024)
 
